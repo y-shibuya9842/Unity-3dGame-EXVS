@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(AudioSource))]
 public class PlayerMechController : MonoBehaviour
 {
     [Header("Move")]
@@ -37,6 +38,15 @@ public class PlayerMechController : MonoBehaviour
     [SerializeField] private float stepEndDeceleration = 14f;
     [SerializeField] private float stepCooldown = 0.08f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip boostDashSound;
+    [SerializeField] private AudioClip stepSound;
+    [SerializeField] private AudioClip landingSound;
+    [SerializeField, Range(0f, 1f)] private float boostDashVolume = 0.8f;
+    [SerializeField, Range(0f, 1f)] private float stepVolume = 0.8f;
+    [SerializeField, Range(0f, 1f)] private float landingVolume = 0.8f;
+
     private Rigidbody rb;
     private Vector3 moveDirection;
     private Vector3 boostDirection;
@@ -49,11 +59,14 @@ public class PlayerMechController : MonoBehaviour
     private bool isJumpButtonHeld;
     private bool isHoldingJump;
     private bool isTouchingGround;
+    private bool wasGrounded;
     private int moveInputHoldFrames;
     private int jumpButtonHoldFrames;
     private float boostCooldownTimer;
     private float stepCooldownTimer;
     private float highSpeedEndDeceleration;
+    private float actionLockTimer;
+    private bool canBoostCancelActionLock;
     private float jumpButtonDownTime;
     private float lastShortJumpTapTime = -999f;
 
@@ -62,6 +75,11 @@ public class PlayerMechController : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
+
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
 
         if (moveReference == null && Camera.main != null)
         {
@@ -73,13 +91,23 @@ public class PlayerMechController : MonoBehaviour
 
     private void Update()
     {
-        // Unity標準の入力軸を使い、WASD入力をカメラ基準の移動方向に変換する。
+        UpdateActionLock();
+
         rawMoveInput = GetRawMoveInput();
+        moveDirection = GetCameraRelativeMoveDirection(rawMoveInput.x, rawMoveInput.y);
+
+        if (IsActionLocked())
+        {
+            HandleBoostCancelInput();
+            UpdateBoostCooldown();
+            UpdateStepCooldown();
+            return;
+        }
+
+        // Unity標準の入力軸を使い、WASD入力をカメラ基準の移動方向に変換する。
         UpdateMoveInputHoldFrames(rawMoveInput);
 
         HandleStepInput(rawMoveInput);
-
-        moveDirection = GetCameraRelativeMoveDirection(rawMoveInput.x, rawMoveInput.y);
 
         if (Input.GetKeyDown(KeyCode.Space))
         {
@@ -101,8 +129,10 @@ public class PlayerMechController : MonoBehaviour
         Move();
         UpdateJumpHold();
         ApplyHoldJump();
+        CheckLandingSound();
 
         // 接地判定は物理更新ごとにCollision側で入れ直す。
+        wasGrounded = IsGrounded();
         isTouchingGround = false;
     }
 
@@ -114,7 +144,12 @@ public class PlayerMechController : MonoBehaviour
         Vector3 targetHorizontalVelocity;
         float acceleration;
 
-        if (isStepping)
+        if (IsActionLocked())
+        {
+            targetHorizontalVelocity = Vector3.zero;
+            acceleration = groundDeceleration;
+        }
+        else if (isStepping)
         {
             targetHorizontalVelocity = stepDirection * stepSpeed;
             acceleration = stepAcceleration;
@@ -156,6 +191,11 @@ public class PlayerMechController : MonoBehaviour
         // 1回目を短く離した後、2回目を押している間はBDする。
         if (isDoubleTap && CanBoost())
         {
+            if (IsActionLocked() && !canBoostCancelActionLock)
+            {
+                return;
+            }
+
             StartBoost();
             ResetJumpHoldState();
             lastShortJumpTapTime = -999f;
@@ -170,7 +210,7 @@ public class PlayerMechController : MonoBehaviour
 
     private void UpdateJumpHold()
     {
-        if (!isJumpButtonHeld || isBoosting)
+        if (!isJumpButtonHeld || isBoosting || IsActionLocked())
         {
             return;
         }
@@ -233,10 +273,13 @@ public class PlayerMechController : MonoBehaviour
 
     private void StartBoost()
     {
+        actionLockTimer = 0f;
+        canBoostCancelActionLock = false;
         StopStep();
 
         isBoosting = true;
-        boostDirection = moveDirection;
+        boostDirection = GetBoostDirection();
+        PlayOneShot(boostDashSound, boostDashVolume);
 
         Vector3 velocity = rb.linearVelocity;
         Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
@@ -280,7 +323,92 @@ public class PlayerMechController : MonoBehaviour
 
     private bool CanBoost()
     {
-        return moveDirection.sqrMagnitude > 0.01f && boostCooldownTimer <= 0f;
+        return boostCooldownTimer <= 0f;
+    }
+
+    private Vector3 GetBoostDirection()
+    {
+        if (moveDirection.sqrMagnitude > 0.01f)
+        {
+            return moveDirection.normalized;
+        }
+
+        Vector3 forward = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
+
+        if (forward.sqrMagnitude <= 0.01f)
+        {
+            return Vector3.forward;
+        }
+
+        return forward.normalized;
+    }
+
+    public void ApplyActionLock(float duration)
+    {
+        ApplyActionLock(duration, false);
+    }
+
+    public void ApplyActionLock(float duration, bool boostCancelable)
+    {
+        if (duration <= 0f)
+        {
+            return;
+        }
+
+        actionLockTimer = Mathf.Max(actionLockTimer, duration);
+        canBoostCancelActionLock = canBoostCancelActionLock || boostCancelable;
+        StopBoost();
+        StopStep();
+        ResetJumpHoldState();
+        ClearStepInputBuffer();
+        ClearMoveInputState();
+
+        Vector3 velocity = rb.linearVelocity;
+        rb.linearVelocity = new Vector3(0f, velocity.y, 0f);
+    }
+
+    public void ClearStepInputBuffer()
+    {
+        lastStepInput = Vector2.zero;
+        activeStepInput = Vector2.zero;
+    }
+
+    private void UpdateActionLock()
+    {
+        if (actionLockTimer > 0f)
+        {
+            actionLockTimer -= Time.deltaTime;
+
+            if (actionLockTimer <= 0f)
+            {
+                canBoostCancelActionLock = false;
+            }
+        }
+    }
+
+    public bool IsActionLocked()
+    {
+        return actionLockTimer > 0f;
+    }
+
+    private void HandleBoostCancelInput()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            HandleJumpButtonDown();
+        }
+
+        if (Input.GetKeyUp(KeyCode.Space))
+        {
+            HandleJumpButtonUp();
+        }
+    }
+
+    private void ClearMoveInputState()
+    {
+        rawMoveInput = Vector2.zero;
+        moveDirection = Vector3.zero;
+        moveInputHoldFrames = 0;
     }
 
     private void UpdateMoveInputHoldFrames(Vector2 input)
@@ -345,6 +473,7 @@ public class PlayerMechController : MonoBehaviour
             rb.linearVelocity = new Vector3(horizontalVelocity.x, velocity.y, horizontalVelocity.z);
         }
 
+        PlayOneShot(stepSound, stepVolume);
         OnStepStarted?.Invoke(stepDirection);
     }
 
@@ -494,6 +623,26 @@ public class PlayerMechController : MonoBehaviour
 
         // 念のため足元方向にもレイを飛ばし、接地判定の取りこぼしを減らす。
         return Physics.Raycast(transform.position, Vector3.down, groundCheckDistance, groundLayer);
+    }
+
+    private void CheckLandingSound()
+    {
+        bool isGrounded = IsGrounded();
+
+        if (!wasGrounded && isGrounded)
+        {
+            PlayOneShot(landingSound, landingVolume);
+        }
+    }
+
+    private void PlayOneShot(AudioClip clip, float volume)
+    {
+        if (audioSource == null || clip == null)
+        {
+            return;
+        }
+
+        audioSource.PlayOneShot(clip, volume);
     }
 
     private void RotateToMoveDirection()

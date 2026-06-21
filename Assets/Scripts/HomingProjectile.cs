@@ -1,0 +1,90 @@
+using UnityEngine;
+
+[RequireComponent(typeof(SphereCollider))]
+public class HomingProjectile : MonoBehaviour
+{
+    [Header("Projectile")]
+    [SerializeField] private float projectileSize = 0.3f;
+    [SerializeField] private float speed = 35f;
+    [SerializeField] private float homingStrength = 8f;
+    [SerializeField] private float lifetime = 3f;
+
+    private Transform target;
+    private Vector3 moveDirection;
+    private float lifeTimer;
+
+    public void Launch(Transform newTarget, Vector3 initialDirection)
+    {
+        target = newTarget;
+        moveDirection = initialDirection.sqrMagnitude > 0.01f
+            ? initialDirection.normalized
+            : transform.forward;
+        lifeTimer = lifetime;
+        ApplySize();
+    }
+
+    private void Awake()
+    {
+        ApplySize();
+    }
+
+    private void Update()
+    {
+        UpdateLifetime();
+        UpdateMoveDirection();
+        Move();
+    }
+
+    private void UpdateLifetime()
+    {
+        lifeTimer -= Time.deltaTime;
+
+        if (lifeTimer <= 0f)
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    private void UpdateMoveDirection()
+    {
+        if (target == null || homingStrength <= 0f)
+        {
+            return;
+        }
+
+        Vector3 targetDirection = (target.position - transform.position).normalized;
+
+        // 誘導の強さに応じて、現在の進行方向を敵方向へ少しずつ寄せる。
+        moveDirection = Vector3.RotateTowards(
+            moveDirection,
+            targetDirection,
+            homingStrength * Time.deltaTime,
+            0f
+        ).normalized;
+    }
+
+    private void Move()
+    {
+        transform.position += moveDirection * speed * Time.deltaTime;
+
+        if (moveDirection.sqrMagnitude > 0.01f)
+        {
+            transform.rotation = Quaternion.LookRotation(moveDirection, Vector3.up);
+        }
+    }
+
+    private void ApplySize()
+    {
+        transform.localScale = Vector3.one * projectileSize;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (target != null && other.transform != target && !other.transform.IsChildOf(target))
+        {
+            return;
+        }
+
+        Destroy(gameObject);
+    }
+}
