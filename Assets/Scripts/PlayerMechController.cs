@@ -8,6 +8,7 @@ public class PlayerMechController : MonoBehaviour
     [SerializeField] private Transform moveReference;
     [SerializeField] private float moveSpeed = 8f;
     [SerializeField] private float rotationSpeed = 12f;
+    [SerializeField] private int rotateHoldFrames = 16;
     [SerializeField] private float groundAcceleration = 45f;
     [SerializeField] private float airAcceleration = 22f;
     [SerializeField] private float groundDeceleration = 40f;
@@ -48,6 +49,7 @@ public class PlayerMechController : MonoBehaviour
     private bool isJumpButtonHeld;
     private bool isHoldingJump;
     private bool isTouchingGround;
+    private int moveInputHoldFrames;
     private int jumpButtonHoldFrames;
     private float boostCooldownTimer;
     private float stepCooldownTimer;
@@ -73,6 +75,7 @@ public class PlayerMechController : MonoBehaviour
     {
         // Unity標準の入力軸を使い、WASD入力をカメラ基準の移動方向に変換する。
         rawMoveInput = GetRawMoveInput();
+        UpdateMoveInputHoldFrames(rawMoveInput);
 
         HandleStepInput(rawMoveInput);
 
@@ -280,6 +283,17 @@ public class PlayerMechController : MonoBehaviour
         return moveDirection.sqrMagnitude > 0.01f && boostCooldownTimer <= 0f;
     }
 
+    private void UpdateMoveInputHoldFrames(Vector2 input)
+    {
+        if (input.sqrMagnitude <= 0.01f)
+        {
+            moveInputHoldFrames = 0;
+            return;
+        }
+
+        moveInputHoldFrames++;
+    }
+
     private void HandleStepInput(Vector2 input)
     {
         Vector2 dominantInput = GetDominantInput(input);
@@ -484,6 +498,16 @@ public class PlayerMechController : MonoBehaviour
 
     private void RotateToMoveDirection()
     {
+        if (isStepping)
+        {
+            return;
+        }
+
+        if (moveInputHoldFrames < rotateHoldFrames)
+        {
+            return;
+        }
+
         if (moveDirection.sqrMagnitude <= 0.01f)
         {
             return;
