@@ -30,7 +30,7 @@ public class PlayerMechController : MonoBehaviour
     [SerializeField] private float boostCooldown = 0.15f;
 
     [Header("Step")]
-    [SerializeField] private float stepSpeed = 14f;
+    [SerializeField] private float stepSpeed = 12f;
     [SerializeField] private float stepStartSpeed = 26f;
     [SerializeField] private float stepAcceleration = 90f;
     [SerializeField] private float stepEndDeceleration = 14f;
