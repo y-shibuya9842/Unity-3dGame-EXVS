@@ -28,6 +28,7 @@ public class PlayerShooter : MonoBehaviour
     private float shootCooldownTimer;
     private float ammoRecoveryTimer;
     private float shootingIntervalMultiplier = 1f;
+    private bool playerInputEnabled = true;
     private int currentAmmo;
 
     public int CurrentAmmo => currentAmmo;
@@ -51,15 +52,31 @@ public class PlayerShooter : MonoBehaviour
         UpdateCooldown();
         UpdateAmmoRecovery();
 
-        if (Input.GetKeyDown(shootKey) && CanShoot())
+        if (playerInputEnabled && Input.GetKeyDown(shootKey))
         {
-            Shoot();
+            TryShoot();
         }
     }
 
     public void SetTarget(Transform newTarget)
     {
         target = newTarget;
+    }
+
+    public bool TryShoot()
+    {
+        if (!CanShoot())
+        {
+            return false;
+        }
+
+        Shoot();
+        return true;
+    }
+
+    public void SetPlayerInputEnabled(bool enabled)
+    {
+        playerInputEnabled = enabled;
     }
 
     private void Shoot()
