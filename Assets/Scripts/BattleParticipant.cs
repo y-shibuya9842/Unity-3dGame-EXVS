@@ -85,6 +85,33 @@ public class BattleParticipant : MonoBehaviour
         return nearest;
     }
 
+    public BattleParticipant FindNearestAlly()
+    {
+        BattleParticipant nearest = null;
+        float nearestDistanceSquared = float.MaxValue;
+
+        foreach (BattleParticipant participant in participants)
+        {
+            if (participant == null
+                || participant == this
+                || participant.team != team
+                || !participant.IsAvailable)
+            {
+                continue;
+            }
+
+            float distanceSquared = (participant.transform.position - transform.position).sqrMagnitude;
+
+            if (distanceSquared < nearestDistanceSquared)
+            {
+                nearest = participant;
+                nearestDistanceSquared = distanceSquared;
+            }
+        }
+
+        return nearest;
+    }
+
     public void Respawn()
     {
         Respawn(1f);
