@@ -1,0 +1,163 @@
+using System;
+using UnityEngine;
+
+public class ShieldGuard : MonoBehaviour
+{
+    [Header("Input")]
+    [SerializeField] private KeyCode directGuardKey = KeyCode.Mouse1;
+    [SerializeField] private float leverInputWindow = 0.3f;
+
+    [Header("Guard")]
+    [SerializeField, Range(1f, 180f)] private float guardAngle = 110f;
+    [SerializeField] private float boostDrainPerSecond = 20f;
+    [SerializeField] private float movementLockRefreshTime = 0.05f;
+
+    [Header("References")]
+    [SerializeField] private PlayerMechController movementController;
+    [SerializeField] private GameObject guardVisual;
+
+    private bool isGuarding;
+    private bool downInputArmed;
+    private float downInputTime;
+
+    public bool IsGuarding => isGuarding;
+
+    public event Action OnGuardStarted;
+    public event Action OnGuardEnded;
+    public event Action OnAttackBlocked;
+
+    private void Awake()
+    {
+        if (movementController == null)
+        {
+            movementController = GetComponent<PlayerMechController>();
+        }
+
+        SetGuardVisual(false);
+    }
+
+    private void Update()
+    {
+        UpdateLeverInput();
+
+        if (Input.GetKeyDown(directGuardKey))
+        {
+            StartGuard();
+        }
+
+        if (!isGuarding)
+        {
+            return;
+        }
+
+        bool keepGuarding = Input.GetKey(directGuardKey)
+            || Input.GetKey(KeyCode.W)
+            || Input.GetKey(KeyCode.UpArrow);
+
+        if (!keepGuarding || movementController == null)
+        {
+            StopGuard();
+            return;
+        }
+
+        movementController.ApplyActionLock(movementLockRefreshTime, false);
+
+        if (!movementController.TryConsumeBoost(boostDrainPerSecond * Time.deltaTime))
+        {
+            StopGuard();
+        }
+    }
+
+    public bool TryBlock(Vector3 attackOrigin)
+    {
+        if (!isGuarding)
+        {
+            return false;
+        }
+
+        Vector3 directionToAttack = attackOrigin - transform.position;
+
+        if (directionToAttack.sqrMagnitude <= 0.01f)
+        {
+            return true;
+        }
+
+        float angle = Vector3.Angle(transform.forward, directionToAttack.normalized);
+
+        if (angle > guardAngle * 0.5f)
+        {
+            return false;
+        }
+
+        OnAttackBlocked?.Invoke();
+        return true;
+    }
+
+    private void UpdateLeverInput()
+    {
+        if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            downInputArmed = true;
+            downInputTime = Time.time;
+        }
+
+        if (downInputArmed && Time.time - downInputTime > leverInputWindow)
+        {
+            downInputArmed = false;
+        }
+
+        bool pressedForward = Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow);
+
+        if (downInputArmed && pressedForward)
+        {
+            downInputArmed = false;
+            StartGuard();
+        }
+    }
+
+    private void StartGuard()
+    {
+        if (isGuarding || movementController == null || movementController.CurrentBoost <= 0f)
+        {
+            return;
+        }
+
+        isGuarding = true;
+        movementController.ClearStepInputBuffer();
+        SetGuardVisual(true);
+        OnGuardStarted?.Invoke();
+    }
+
+    private void StopGuard()
+    {
+        if (!isGuarding)
+        {
+            return;
+        }
+
+        isGuarding = false;
+        SetGuardVisual(false);
+        OnGuardEnded?.Invoke();
+    }
+
+    private void SetGuardVisual(bool visible)
+    {
+        if (guardVisual != null)
+        {
+            guardVisual.SetActive(visible);
+        }
+    }
+
+    private void OnDisable()
+    {
+        isGuarding = false;
+        SetGuardVisual(false);
+    }
+
+    private void OnValidate()
+    {
+        leverInputWindow = Mathf.Max(0.01f, leverInputWindow);
+        boostDrainPerSecond = Mathf.Max(0f, boostDrainPerSecond);
+        movementLockRefreshTime = Mathf.Max(0.01f, movementLockRefreshTime);
+    }
+}

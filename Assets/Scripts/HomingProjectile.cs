@@ -90,6 +90,14 @@ public class HomingProjectile : MonoBehaviour
             return;
         }
 
+        ShieldGuard shield = other.GetComponentInParent<ShieldGuard>();
+
+        if (shield != null && shield.TryBlock(transform.position))
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         MechHealth health = other.GetComponentInParent<MechHealth>();
         health?.TakeDamage(damage);
         Destroy(gameObject);
