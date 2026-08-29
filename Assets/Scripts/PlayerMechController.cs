@@ -38,6 +38,15 @@ public class PlayerMechController : MonoBehaviour
     [SerializeField] private float stepEndDeceleration = 14f;
     [SerializeField] private float stepCooldown = 0.08f;
 
+    [Header("Boost Gauge")]
+    [SerializeField] private float maxBoost = 100f;
+    [SerializeField] private float boostDashDrainPerSecond = 28f;
+    [SerializeField] private float jumpDrainPerSecond = 18f;
+    [SerializeField] private float stepStartCost = 10f;
+    [SerializeField] private float boostRecoveryPerSecond = 55f;
+    [SerializeField] private float boostRecoveryDelay = 0.35f;
+    [SerializeField] private bool recoverOnlyGrounded = true;
+
     [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip boostDashSound;
@@ -65,12 +74,19 @@ public class PlayerMechController : MonoBehaviour
     private float boostCooldownTimer;
     private float stepCooldownTimer;
     private float highSpeedEndDeceleration;
+    private float currentBoost;
+    private float boostRecoveryDelayTimer;
     private float actionLockTimer;
     private bool canBoostCancelActionLock;
     private float jumpButtonDownTime;
     private float lastShortJumpTapTime = -999f;
 
     public event Action<Vector3> OnStepStarted;
+    public event Action<float, float> OnBoostChanged;
+
+    public float CurrentBoost => currentBoost;
+    public float MaxBoost => maxBoost;
+    public float NormalizedBoost => maxBoost > 0f ? currentBoost / maxBoost : 0f;
 
     private void Awake()
     {
@@ -87,6 +103,7 @@ public class PlayerMechController : MonoBehaviour
         }
 
         highSpeedEndDeceleration = boostEndDeceleration;
+        currentBoost = Mathf.Max(1f, maxBoost);
     }
 
     private void Update()
@@ -129,6 +146,7 @@ public class PlayerMechController : MonoBehaviour
         Move();
         UpdateJumpHold();
         ApplyHoldJump();
+        UpdateBoostGauge();
         CheckLandingSound();
 
         // 接地判定は物理更新ごとにCollision側で入れ直す。
@@ -239,6 +257,12 @@ public class PlayerMechController : MonoBehaviour
 
     private void StartHoldJump()
     {
+        if (!HasBoost())
+        {
+            ResetJumpHoldState();
+            return;
+        }
+
         isHoldingJump = true;
 
         Vector3 velocity = rb.linearVelocity;
@@ -323,7 +347,7 @@ public class PlayerMechController : MonoBehaviour
 
     private bool CanBoost()
     {
-        return boostCooldownTimer <= 0f;
+        return boostCooldownTimer <= 0f && HasBoost();
     }
 
     private Vector3 GetBoostDirection()
@@ -456,6 +480,11 @@ public class PlayerMechController : MonoBehaviour
 
     private void StartStep(Vector2 input)
     {
+        if (!TryConsumeBoost(stepStartCost))
+        {
+            return;
+        }
+
         StopBoost();
 
         isStepping = true;
@@ -492,7 +521,84 @@ public class PlayerMechController : MonoBehaviour
 
     private bool CanStep()
     {
-        return stepCooldownTimer <= 0f;
+        return stepCooldownTimer <= 0f && currentBoost >= stepStartCost;
+    }
+
+    public bool TryConsumeBoost(float amount)
+    {
+        if (amount <= 0f)
+        {
+            return true;
+        }
+
+        if (currentBoost < amount)
+        {
+            return false;
+        }
+
+        SetCurrentBoost(currentBoost - amount);
+        boostRecoveryDelayTimer = boostRecoveryDelay;
+        return true;
+    }
+
+    private void UpdateBoostGauge()
+    {
+        float drain = 0f;
+
+        if (isBoosting)
+        {
+            drain += boostDashDrainPerSecond * Time.fixedDeltaTime;
+        }
+
+        if (isHoldingJump && !isBoosting)
+        {
+            drain += jumpDrainPerSecond * Time.fixedDeltaTime;
+        }
+
+        if (drain > 0f)
+        {
+            SetCurrentBoost(currentBoost - drain);
+            boostRecoveryDelayTimer = boostRecoveryDelay;
+
+            if (!HasBoost())
+            {
+                StopBoost();
+                ResetJumpHoldState();
+            }
+
+            return;
+        }
+
+        if (boostRecoveryDelayTimer > 0f)
+        {
+            boostRecoveryDelayTimer -= Time.fixedDeltaTime;
+            return;
+        }
+
+        if (recoverOnlyGrounded && !IsGrounded())
+        {
+            return;
+        }
+
+        SetCurrentBoost(currentBoost + boostRecoveryPerSecond * Time.fixedDeltaTime);
+    }
+
+    private bool HasBoost()
+    {
+        return currentBoost > 0.01f;
+    }
+
+    private void SetCurrentBoost(float value)
+    {
+        float nextBoost = Mathf.Clamp(value, 0f, maxBoost);
+
+        if (Mathf.Approximately(nextBoost, currentBoost))
+        {
+            return;
+        }
+
+        currentBoost = nextBoost;
+        OnBoostChanged?.Invoke(currentBoost, maxBoost);
     }
 
     private static Vector2 GetRawMoveInput()
@@ -691,5 +797,15 @@ public class PlayerMechController : MonoBehaviour
     private bool IsInGroundLayer(int layer)
     {
         return (groundLayer.value & (1 << layer)) != 0;
+    }
+
+    private void OnValidate()
+    {
+        maxBoost = Mathf.Max(1f, maxBoost);
+        boostDashDrainPerSecond = Mathf.Max(0f, boostDashDrainPerSecond);
+        jumpDrainPerSecond = Mathf.Max(0f, jumpDrainPerSecond);
+        stepStartCost = Mathf.Max(0f, stepStartCost);
+        boostRecoveryPerSecond = Mathf.Max(0f, boostRecoveryPerSecond);
+        boostRecoveryDelay = Mathf.Max(0f, boostRecoveryDelay);
     }
 }
