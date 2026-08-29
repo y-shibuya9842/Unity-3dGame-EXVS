@@ -8,14 +8,17 @@ public class HomingProjectile : MonoBehaviour
     [SerializeField] private float speed = 35f;
     [SerializeField] private float homingStrength = 8f;
     [SerializeField] private float lifetime = 3f;
+    [SerializeField] private float damage = 75f;
 
     private Transform target;
+    private Transform ownerRoot;
     private Vector3 moveDirection;
     private float lifeTimer;
 
-    public void Launch(Transform newTarget, Vector3 initialDirection)
+    public void Launch(Transform newTarget, Vector3 initialDirection, Transform owner)
     {
         target = newTarget;
+        ownerRoot = owner != null ? owner.root : null;
         moveDirection = initialDirection.sqrMagnitude > 0.01f
             ? initialDirection.normalized
             : transform.forward;
@@ -80,11 +83,22 @@ public class HomingProjectile : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (target != null && other.transform != target && !other.transform.IsChildOf(target))
+        if (ownerRoot != null && other.transform.root == ownerRoot)
         {
             return;
         }
 
+        MechHealth health = other.GetComponentInParent<MechHealth>();
+        health?.TakeDamage(damage);
         Destroy(gameObject);
+    }
+
+    private void OnValidate()
+    {
+        projectileSize = Mathf.Max(0.01f, projectileSize);
+        speed = Mathf.Max(0f, speed);
+        homingStrength = Mathf.Max(0f, homingStrength);
+        lifetime = Mathf.Max(0.01f, lifetime);
+        damage = Mathf.Max(0f, damage);
     }
 }

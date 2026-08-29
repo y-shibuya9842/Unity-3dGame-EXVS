@@ -63,7 +63,7 @@ public class PlayerShooter : MonoBehaviour
             Quaternion.LookRotation(shootDirection, Vector3.up)
         );
 
-        projectile.Launch(target, shootDirection);
+        projectile.Launch(target, shootDirection, transform);
         
         float actionLock = didTurnShot ? turnShotActionLock : shootActionLock;
         movementController?.ApplyActionLock(actionLock, true);
