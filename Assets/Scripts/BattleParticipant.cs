@@ -87,13 +87,18 @@ public class BattleParticipant : MonoBehaviour
 
     public void Respawn()
     {
+        Respawn(1f);
+    }
+
+    public void Respawn(float healthRatio)
+    {
         Transform point = respawnPoint;
         transform.SetPositionAndRotation(
             point != null ? point.position : initialPosition,
             point != null ? point.rotation : initialRotation
         );
 
-        health?.ResetHealth();
+        health?.ResetHealth(healthRatio);
     }
 
     private void HandleDestroyed()

@@ -72,7 +72,10 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
-        StartCoroutine(RespawnRoutine(participant));
+        float respawnHealthRatio = Mathf.Clamp01(
+            (float)remainingCost / participant.UnitCost
+        );
+        StartCoroutine(RespawnRoutine(participant, respawnHealthRatio));
     }
 
     private int ReduceTeamCost(BattleTeam team, int amount)
@@ -89,13 +92,15 @@ public class BattleManager : MonoBehaviour
         return enemyTeamCost;
     }
 
-    private IEnumerator RespawnRoutine(BattleParticipant participant)
+    private IEnumerator RespawnRoutine(
+        BattleParticipant participant,
+        float healthRatio)
     {
         yield return new WaitForSeconds(participant.RespawnDelay);
 
         if (!battleEnded)
         {
-            participant.Respawn();
+            participant.Respawn(healthRatio);
         }
     }
 
