@@ -37,6 +37,7 @@ public class PlayerMechController : MonoBehaviour
     [SerializeField] private float stepAcceleration = 90f;
     [SerializeField] private float stepEndDeceleration = 14f;
     [SerializeField] private float stepCooldown = 0.08f;
+    [SerializeField] private TransformationController transformationController;
 
     [Header("Boost Gauge")]
     [SerializeField] private float maxBoost = 100f;
@@ -105,6 +106,11 @@ public class PlayerMechController : MonoBehaviour
         if (moveReference == null && Camera.main != null)
         {
             moveReference = Camera.main.transform;
+        }
+
+        if (transformationController == null)
+        {
+            transformationController = GetComponent<TransformationController>();
         }
 
         highSpeedEndDeceleration = boostEndDeceleration;
@@ -494,15 +500,42 @@ public class PlayerMechController : MonoBehaviour
 
         if (IsDirectionPressedThisFrame(dominantInput))
         {
-            if (dominantInput == lastStepInput && CanStep())
+            if (dominantInput == lastStepInput)
             {
-                StartStep(dominantInput);
-                lastStepInput = Vector2.zero;
-                return;
+                Vector3 worldDirection = GetCameraRelativeMoveDirection(
+                    dominantInput.x,
+                    dominantInput.y
+                );
+                bool transformationHandled = transformationController != null
+                    && transformationController.TryHandleStepInput(
+                        dominantInput,
+                        worldDirection,
+                        Input.GetKey(KeyCode.Space)
+                    );
+
+                if (transformationHandled)
+                {
+                    lastStepInput = Vector2.zero;
+                    return;
+                }
+
+                if (CanStep())
+                {
+                    StartStep(dominantInput);
+                    lastStepInput = Vector2.zero;
+                    return;
+                }
             }
 
             lastStepInput = dominantInput;
         }
+    }
+
+    public void PrepareForTransformation()
+    {
+        StopBoost();
+        StopStep();
+        ResetJumpHoldState();
     }
 
     private void StartStep(Vector2 input)
