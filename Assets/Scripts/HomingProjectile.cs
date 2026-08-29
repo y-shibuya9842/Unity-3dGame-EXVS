@@ -15,7 +15,6 @@ public class HomingProjectile : MonoBehaviour
 
     private Transform target;
     private Transform ownerRoot;
-    private BattleParticipant ownerParticipant;
     private PlayerMechController targetMovementController;
     private Vector3 moveDirection;
     private bool homingEnabled;
@@ -26,9 +25,6 @@ public class HomingProjectile : MonoBehaviour
     {
         target = newTarget;
         ownerRoot = owner != null ? owner.root : null;
-        ownerParticipant = owner != null
-            ? owner.GetComponentInParent<BattleParticipant>()
-            : null;
         targetMovementController = target != null
             ? target.GetComponentInParent<PlayerMechController>()
             : null;
@@ -108,15 +104,6 @@ public class HomingProjectile : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (ownerRoot != null && other.transform.root == ownerRoot)
-        {
-            return;
-        }
-
-        BattleParticipant hitParticipant = other.GetComponentInParent<BattleParticipant>();
-
-        if (ownerParticipant != null
-            && hitParticipant != null
-            && ownerParticipant.Team == hitParticipant.Team)
         {
             return;
         }
