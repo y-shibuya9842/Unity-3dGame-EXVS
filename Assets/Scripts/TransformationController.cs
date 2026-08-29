@@ -86,7 +86,7 @@ public class TransformationController : MonoBehaviour
             transformedModel.SetActive(transformed);
         }
 
-        movementController?.SetMovementSpeedMultiplier(
+        movementController?.SetTransformationSpeedMultiplier(
             transformed ? movementSpeedMultiplier : 1f
         );
 

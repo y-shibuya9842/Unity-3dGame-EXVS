@@ -51,6 +51,7 @@ public class MeleeAttackController : MonoBehaviour
     private bool canBufferCombo;
     private bool comboBuffered;
     private MeleeDirection activeDirection;
+    private float externalDamageMultiplier = 1f;
 
     public bool IsAttacking => isAttacking;
 
@@ -172,7 +173,8 @@ public class MeleeAttackController : MonoBehaviour
 
         float comboDamage = damage
             * GetDirectionalDamageMultiplier()
-            * Mathf.Pow(comboDamageMultiplier, comboIndex);
+            * Mathf.Pow(comboDamageMultiplier, comboIndex)
+            * externalDamageMultiplier;
 
         if (health != null && health.TakeDamage(comboDamage))
         {
@@ -277,6 +279,11 @@ public class MeleeAttackController : MonoBehaviour
         {
             transform.rotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
         }
+    }
+
+    public void SetDamageMultiplier(float multiplier)
+    {
+        externalDamageMultiplier = Mathf.Max(0.01f, multiplier);
     }
 
     private void OnDisable()

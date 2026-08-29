@@ -77,6 +77,7 @@ public class PlayerMechController : MonoBehaviour
     private float currentBoost;
     private float boostRecoveryDelayTimer;
     private float movementSpeedMultiplier = 1f;
+    private float transformationSpeedMultiplier = 1f;
     private float actionLockTimer;
     private bool canBoostCancelActionLock;
     private float jumpButtonDownTime;
@@ -171,17 +172,17 @@ public class PlayerMechController : MonoBehaviour
         }
         else if (isStepping)
         {
-            targetHorizontalVelocity = stepDirection * stepSpeed * movementSpeedMultiplier;
+            targetHorizontalVelocity = stepDirection * stepSpeed * GetTotalSpeedMultiplier();
             acceleration = stepAcceleration;
         }
         else if (isBoosting)
         {
-            targetHorizontalVelocity = boostDirection * boostSpeed * movementSpeedMultiplier;
+            targetHorizontalVelocity = boostDirection * boostSpeed * GetTotalSpeedMultiplier();
             acceleration = boostAcceleration;
         }
         else if (moveDirection.sqrMagnitude > 0.01f)
         {
-            targetHorizontalVelocity = moveDirection * moveSpeed * movementSpeedMultiplier;
+            targetHorizontalVelocity = moveDirection * moveSpeed * GetTotalSpeedMultiplier();
             acceleration = GetMoveAcceleration(currentHorizontalVelocity);
         }
         else
@@ -427,6 +428,16 @@ public class PlayerMechController : MonoBehaviour
     public void SetMovementSpeedMultiplier(float multiplier)
     {
         movementSpeedMultiplier = Mathf.Max(0.01f, multiplier);
+    }
+
+    public void SetTransformationSpeedMultiplier(float multiplier)
+    {
+        transformationSpeedMultiplier = Mathf.Max(0.01f, multiplier);
+    }
+
+    private float GetTotalSpeedMultiplier()
+    {
+        return movementSpeedMultiplier * transformationSpeedMultiplier;
     }
 
     private void HandleBoostCancelInput()

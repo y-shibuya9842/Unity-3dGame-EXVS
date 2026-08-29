@@ -2,6 +2,14 @@ using System;
 using System.Collections;
 using UnityEngine;
 
+public enum AwakeningType
+{
+    Fighting,
+    Shooting,
+    Mobility,
+    Custom
+}
+
 public class AwakeningController : MonoBehaviour
 {
     [Header("Input")]
@@ -12,15 +20,20 @@ public class AwakeningController : MonoBehaviour
     [SerializeField] private float activationCost = 100f;
     [SerializeField] private float gaugeGainPerDamage = 0.2f;
 
-    [Header("Effect")]
+    [Header("Effect Type")]
+    [SerializeField] private AwakeningType awakeningType = AwakeningType.Custom;
+
+    [Header("Custom Effect")]
     [SerializeField] private float duration = 10f;
     [SerializeField] private float movementSpeedMultiplier = 1.2f;
     [SerializeField] private float shootingIntervalMultiplier = 0.8f;
+    [SerializeField] private float meleeDamageMultiplier = 1.1f;
 
     [Header("References")]
     [SerializeField] private MechHealth health;
     [SerializeField] private PlayerMechController movementController;
     [SerializeField] private PlayerShooter playerShooter;
+    [SerializeField] private MeleeAttackController meleeController;
 
     private float currentGauge;
     private bool isAwakened;
@@ -48,6 +61,11 @@ public class AwakeningController : MonoBehaviour
         if (playerShooter == null)
         {
             playerShooter = GetComponent<PlayerShooter>();
+        }
+
+        if (meleeController == null)
+        {
+            meleeController = GetComponent<MeleeAttackController>();
         }
     }
 
@@ -88,8 +106,7 @@ public class AwakeningController : MonoBehaviour
         isAwakened = true;
         SetGauge(currentGauge - activationCost);
         movementController?.CancelActionLock();
-        movementController?.SetMovementSpeedMultiplier(movementSpeedMultiplier);
-        playerShooter?.SetShootingIntervalMultiplier(shootingIntervalMultiplier);
+        ApplySelectedEffects();
         OnAwakeningStarted?.Invoke();
 
         yield return new WaitForSeconds(duration);
@@ -124,6 +141,42 @@ public class AwakeningController : MonoBehaviour
         isAwakened = false;
         movementController?.SetMovementSpeedMultiplier(1f);
         playerShooter?.SetShootingIntervalMultiplier(1f);
+        meleeController?.SetDamageMultiplier(1f);
+    }
+
+    private void ApplySelectedEffects()
+    {
+        float moveMultiplier;
+        float shootMultiplier;
+        float meleeMultiplier;
+
+        switch (awakeningType)
+        {
+            case AwakeningType.Fighting:
+                moveMultiplier = 1.15f;
+                shootMultiplier = 0.95f;
+                meleeMultiplier = 1.25f;
+                break;
+            case AwakeningType.Shooting:
+                moveMultiplier = 1.1f;
+                shootMultiplier = 0.7f;
+                meleeMultiplier = 1f;
+                break;
+            case AwakeningType.Mobility:
+                moveMultiplier = 1.35f;
+                shootMultiplier = 0.9f;
+                meleeMultiplier = 1.05f;
+                break;
+            default:
+                moveMultiplier = movementSpeedMultiplier;
+                shootMultiplier = shootingIntervalMultiplier;
+                meleeMultiplier = meleeDamageMultiplier;
+                break;
+        }
+
+        movementController?.SetMovementSpeedMultiplier(moveMultiplier);
+        playerShooter?.SetShootingIntervalMultiplier(shootMultiplier);
+        meleeController?.SetDamageMultiplier(meleeMultiplier);
     }
 
     private void OnValidate()
@@ -134,5 +187,6 @@ public class AwakeningController : MonoBehaviour
         duration = Mathf.Max(0.1f, duration);
         movementSpeedMultiplier = Mathf.Max(0.01f, movementSpeedMultiplier);
         shootingIntervalMultiplier = Mathf.Max(0.01f, shootingIntervalMultiplier);
+        meleeDamageMultiplier = Mathf.Max(0.01f, meleeDamageMultiplier);
     }
 }
