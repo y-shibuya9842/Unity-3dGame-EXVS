@@ -477,6 +477,8 @@ GameObject:
   - component: {fileID: 496538649}
   - component: {fileID: 496538648}
   - component: {fileID: 496538647}
+  - component: {fileID: 496538653}
+  - component: {fileID: 496538652}
   m_Layer: 0
   m_Name: EnemyMech
   m_TagString: Untagged
@@ -605,6 +607,38 @@ Transform:
   - {fileID: 761144138}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &496538652
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 496538646}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2e360d2fdae46d88008e82c7116262b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  team: 1
+  unitCost: 2000
+  respawnDelay: 2
+  battleManager: {fileID: 0}
+  health: {fileID: 496538653}
+  respawnPoint: {fileID: 0}
+--- !u!114 &496538653
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 496538646}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cbe2a54b85145c1a6147fa2d8f1f08e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 600
+  disableOnDestroyed: 1
 --- !u!1 &539055077
 GameObject:
   m_ObjectHideFlags: 0
