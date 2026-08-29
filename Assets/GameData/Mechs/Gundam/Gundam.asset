@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d78aecfb2af4ecdb24f8f1117836e9f, type: 3}
+  m_Name: Gundam
+  m_EditorClassIdentifier: 
+  mechName: "\u30AC\u30F3\u30C0\u30E0"
+  pilotName: "\u30A2\u30E0\u30ED\u30FB\u30EC\u30A4"
+  unitCost: 2000
+  maxHealth: 660
+  boostDashCount: 6
+  redLockDistance: 30
+  supportsTransformation: 0
+  mainShot: {fileID: 11400000, guid: ed46e7c0d166a7b478d84c531c488b98, type: 2}
+  chargeShot: {fileID: 11400000, guid: 1abb70f2e94f76548934d4982db9d837, type: 2}
+  subShot: {fileID: 11400000, guid: 780e3f3f958e5b2478dd5db6c43a280a, type: 2}
+  specialShot: {fileID: 11400000, guid: 17a3537d03326c74e9d3a43efe25860a, type: 2}
+  burstAttack: {fileID: 11400000, guid: a3c8fe9f8b3056e48b33586e24f27b9d, type: 2}
+  melee: {fileID: 11400000, guid: e4d92c1d644239b46800cb7b14103f60, type: 2}
+  specialMelee: {fileID: 11400000, guid: 330b1505e9eaefb45ba78d2b777d8a36, type: 2}
+  forwardMelee: {fileID: 11400000, guid: 2d1a2a55aee2cb2439c42c2b269968d3, type: 2}
+  sideMelee: {fileID: 11400000, guid: a37ebdc55986c4049b5dab0200174158, type: 2}
+  backwardMelee: {fileID: 11400000, guid: 62d932cb8e2b60a4084bc1381561866c, type: 2}
+  boostDashMelee: {fileID: 11400000, guid: fc8523d0fabb8bc458a8f4b6e4d8b0f1, type: 2}
+  directionalChargeShot: {fileID: 11400000, guid: 816005990bfa77f46a83c87d7838f9cb, type: 2}
+  directionalSubShot: {fileID: 11400000, guid: e342f0d4a49b80641b1cda97014ff3b8, type: 2}
+  directionalSpecialShot: {fileID: 11400000, guid: 2feb7fc0c00c5554c9f7dc2cc581801c, type: 2}
+  forwardSpecialMelee: {fileID: 11400000, guid: 6281ad9dd9db40544b33c584edd48c0f, type: 2}
+  sideSpecialMelee: {fileID: 11400000, guid: 2bb6a59d85777614799fcab85f051d8b, type: 2}
+  backwardSpecialMelee: {fileID: 11400000, guid: a799f9674d73df6438ad185878a974e1, type: 2}

@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 108b1df0db544da699856f643c49d686, type: 3}
+  m_Name: Sub_SideHyperBazooka
+  m_EditorClassIdentifier: 
+  weaponName: "\u30CF\u30A4\u30D1\u30FC\u30FB\u30D0\u30BA\u30FC\u30AB\u3010\u79FB\u52D5\u6483\u3061\u3011"
+  projectilePrefab: {fileID: 8082435357805322568, guid: 20f058e1a004cb142bb35b348ae413d4, type: 3}
+  maxAmmo: 2
+  reloadTime: 4.5
+  reloadMode: 1
+  cooldown: 0.5
+  actionLockDuration: 0.3
+  startupTime: 0
+  recoilSpeed: 0
+  projectileCount: 2
+  projectileInterval: 0.16
+  spreadAngle: 2
+  chargeTime: 2

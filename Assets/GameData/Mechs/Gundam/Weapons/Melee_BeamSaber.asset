@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72cb82b21b8f4a39b336f34453ddca82, type: 3}
+  m_Name: Melee_BeamSaber
+  m_EditorClassIdentifier: 
+  weaponName: "\u30D3\u30FC\u30E0\u30FB\u30B5\u30FC\u30D9\u30EB"
+  damage: 70
+  attackRange: 4
+  hitAngle: 70
+  startupTime: 0.15
+  recoveryTime: 0.35
+  hitStunDuration: 0.4
+  downValue: 35
+  knockbackSpeed: 4
+  rushSpeed: 24
+  rushDuration: 0.45
+  boostCost: 20
+  maxComboCount: 3
+  comboInputWindow: 0.35
+  comboDamageMultiplier: 0.81
+  comboDownValueMultiplier: 1.15
+  neutralAnimationTrigger: Melee
+  forwardAnimationTrigger: ForwardMelee
+  backwardAnimationTrigger: BackwardMelee
+  sideAnimationTrigger: SideMelee
+  specialAnimationTrigger: SpecialMelee

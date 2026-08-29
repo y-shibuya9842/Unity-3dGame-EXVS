@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 108b1df0db544da699856f643c49d686, type: 3}
+  m_Name: SpecialShot_RushSupport
+  m_EditorClassIdentifier: 
+  weaponName: "\u30AC\u30F3\u30AD\u30E3\u30CE\u30F3\uFF06\u30AC\u30F3\u30BF\u30F3\u30AF
+    \u7A81\u6483"
+  projectilePrefab: {fileID: 8082435357805322568, guid: e22f2736b1a94b147860109656718cc3, type: 3}
+  maxAmmo: 2
+  reloadTime: 12
+  reloadMode: 1
+  cooldown: 0.8
+  actionLockDuration: 0.8
+  startupTime: 0.2
+  recoilSpeed: 0
+  projectileCount: 1
+  projectileInterval: 0
+  spreadAngle: 0
+  chargeTime: 2
