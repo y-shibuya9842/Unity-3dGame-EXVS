@@ -27,6 +27,7 @@ public class PlayerShooter : MonoBehaviour
 
     private float shootCooldownTimer;
     private float ammoRecoveryTimer;
+    private float shootingIntervalMultiplier = 1f;
     private int currentAmmo;
 
     public int CurrentAmmo => currentAmmo;
@@ -89,7 +90,7 @@ public class PlayerShooter : MonoBehaviour
 
         SetCurrentAmmo(currentAmmo - 1);
         ammoRecoveryTimer = ammoRecoveryTime;
-        shootCooldownTimer = shootCooldown;
+        shootCooldownTimer = shootCooldown * shootingIntervalMultiplier;
     }
 
     private Vector3 GetShootDirection(Transform spawnPoint)
@@ -180,6 +181,11 @@ public class PlayerShooter : MonoBehaviour
 
         currentAmmo = nextAmmo;
         OnAmmoChanged?.Invoke(currentAmmo, maxAmmo);
+    }
+
+    public void SetShootingIntervalMultiplier(float multiplier)
+    {
+        shootingIntervalMultiplier = Mathf.Max(0.01f, multiplier);
     }
 
     private void OnValidate()

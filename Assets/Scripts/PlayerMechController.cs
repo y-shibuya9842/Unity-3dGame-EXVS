@@ -76,6 +76,7 @@ public class PlayerMechController : MonoBehaviour
     private float highSpeedEndDeceleration;
     private float currentBoost;
     private float boostRecoveryDelayTimer;
+    private float movementSpeedMultiplier = 1f;
     private float actionLockTimer;
     private bool canBoostCancelActionLock;
     private float jumpButtonDownTime;
@@ -170,17 +171,17 @@ public class PlayerMechController : MonoBehaviour
         }
         else if (isStepping)
         {
-            targetHorizontalVelocity = stepDirection * stepSpeed;
+            targetHorizontalVelocity = stepDirection * stepSpeed * movementSpeedMultiplier;
             acceleration = stepAcceleration;
         }
         else if (isBoosting)
         {
-            targetHorizontalVelocity = boostDirection * boostSpeed;
+            targetHorizontalVelocity = boostDirection * boostSpeed * movementSpeedMultiplier;
             acceleration = boostAcceleration;
         }
         else if (moveDirection.sqrMagnitude > 0.01f)
         {
-            targetHorizontalVelocity = moveDirection * moveSpeed;
+            targetHorizontalVelocity = moveDirection * moveSpeed * movementSpeedMultiplier;
             acceleration = GetMoveAcceleration(currentHorizontalVelocity);
         }
         else
@@ -415,6 +416,17 @@ public class PlayerMechController : MonoBehaviour
     public bool IsActionLocked()
     {
         return actionLockTimer > 0f;
+    }
+
+    public void CancelActionLock()
+    {
+        actionLockTimer = 0f;
+        canBoostCancelActionLock = false;
+    }
+
+    public void SetMovementSpeedMultiplier(float multiplier)
+    {
+        movementSpeedMultiplier = Mathf.Max(0.01f, multiplier);
     }
 
     private void HandleBoostCancelInput()
