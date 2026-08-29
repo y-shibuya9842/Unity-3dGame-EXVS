@@ -1,7 +1,10 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class BattleParticipant : MonoBehaviour
 {
+    private static readonly List<BattleParticipant> participants = new List<BattleParticipant>();
+
     [Header("Battle")]
     [SerializeField] private BattleTeam team;
     [SerializeField] private int unitCost = 2000;
@@ -18,6 +21,8 @@ public class BattleParticipant : MonoBehaviour
     public BattleTeam Team => team;
     public int UnitCost => unitCost;
     public float RespawnDelay => respawnDelay;
+    public bool IsAvailable => isActiveAndEnabled && (health == null || !health.IsDestroyed);
+    public static IReadOnlyList<BattleParticipant> AllParticipants => participants;
 
     private void Awake()
     {
@@ -32,6 +37,11 @@ public class BattleParticipant : MonoBehaviour
 
     private void OnEnable()
     {
+        if (!participants.Contains(this))
+        {
+            participants.Add(this);
+        }
+
         if (health != null)
         {
             health.OnDestroyed += HandleDestroyed;
@@ -40,10 +50,39 @@ public class BattleParticipant : MonoBehaviour
 
     private void OnDisable()
     {
+        participants.Remove(this);
+
         if (health != null)
         {
             health.OnDestroyed -= HandleDestroyed;
         }
+    }
+
+    public BattleParticipant FindNearestOpponent()
+    {
+        BattleParticipant nearest = null;
+        float nearestDistanceSquared = float.MaxValue;
+
+        foreach (BattleParticipant participant in participants)
+        {
+            if (participant == null
+                || participant == this
+                || participant.team == team
+                || !participant.IsAvailable)
+            {
+                continue;
+            }
+
+            float distanceSquared = (participant.transform.position - transform.position).sqrMagnitude;
+
+            if (distanceSquared < nearestDistanceSquared)
+            {
+                nearest = participant;
+                nearestDistanceSquared = distanceSquared;
+            }
+        }
+
+        return nearest;
     }
 
     public void Respawn()

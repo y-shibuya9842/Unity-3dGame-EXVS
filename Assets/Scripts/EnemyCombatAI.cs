@@ -8,6 +8,8 @@ public class EnemyCombatAI : MonoBehaviour
     [SerializeField] private PlayerShooter shooter;
     [SerializeField] private MechHealth health;
     [SerializeField] private HitReactionController hitReaction;
+    [SerializeField] private BattleParticipant participant;
+    [SerializeField] private bool automaticallySelectOpponent = true;
 
     [Header("Movement")]
     [SerializeField] private float preferredDistance = 18f;
@@ -20,10 +22,12 @@ public class EnemyCombatAI : MonoBehaviour
     [Header("Combat")]
     [SerializeField] private float shootRange = 45f;
     [SerializeField] private float decisionInterval = 0.6f;
+    [SerializeField] private float targetRefreshInterval = 0.5f;
 
     private Rigidbody rb;
     private float decisionTimer;
     private float strafeSign = 1f;
+    private float targetRefreshTimer;
 
     private void Awake()
     {
@@ -44,11 +48,18 @@ public class EnemyCombatAI : MonoBehaviour
             hitReaction = GetComponent<HitReactionController>();
         }
 
+        if (participant == null)
+        {
+            participant = GetComponent<BattleParticipant>();
+        }
+
         shooter?.SetPlayerInputEnabled(false);
     }
 
     private void Update()
     {
+        UpdateAutomaticTarget();
+
         if (!CanAct())
         {
             return;
@@ -64,6 +75,25 @@ public class EnemyCombatAI : MonoBehaviour
             MakeCombatDecision();
             decisionTimer = decisionInterval;
         }
+    }
+
+    private void UpdateAutomaticTarget()
+    {
+        if (!automaticallySelectOpponent || participant == null)
+        {
+            return;
+        }
+
+        targetRefreshTimer -= Time.deltaTime;
+
+        if (targetRefreshTimer > 0f && target != null && target.gameObject.activeInHierarchy)
+        {
+            return;
+        }
+
+        BattleParticipant opponent = participant.FindNearestOpponent();
+        SetTarget(opponent != null ? opponent.transform : null);
+        targetRefreshTimer = targetRefreshInterval;
     }
 
     private void FixedUpdate()
@@ -169,5 +199,6 @@ public class EnemyCombatAI : MonoBehaviour
         strafeWeight = Mathf.Clamp01(strafeWeight);
         shootRange = Mathf.Max(0f, shootRange);
         decisionInterval = Mathf.Max(0.05f, decisionInterval);
+        targetRefreshInterval = Mathf.Max(0.05f, targetRefreshInterval);
     }
 }

@@ -13,8 +13,11 @@ public class LockOnController : MonoBehaviour
 {
     [Header("Targets")]
     [SerializeField] private Transform player;
+    [SerializeField] private BattleParticipant playerParticipant;
     [SerializeField] private List<Transform> targetCandidates = new List<Transform>();
     [SerializeField] private KeyCode switchTargetKey = KeyCode.Tab;
+    [SerializeField] private bool automaticallyFindOpponents = true;
+    [SerializeField] private float targetRefreshInterval = 0.5f;
 
     [Header("Lock Range")]
     [SerializeField] private float redLockDistance = 30f;
@@ -26,6 +29,7 @@ public class LockOnController : MonoBehaviour
     private Transform currentTarget;
     private LockState currentLockState = LockState.None;
     private int targetIndex = -1;
+    private float targetRefreshTimer;
 
     public Transform CurrentTarget => currentTarget;
     public LockState CurrentLockState => currentLockState;
@@ -36,17 +40,92 @@ public class LockOnController : MonoBehaviour
 
     private void Start()
     {
-        SelectNextTarget();
+        if (playerParticipant == null && player != null)
+        {
+            playerParticipant = player.GetComponentInParent<BattleParticipant>();
+        }
+
+        RefreshOpponentTargets();
+
+        if (currentTarget == null)
+        {
+            SelectNextTarget();
+        }
     }
 
     private void Update()
     {
+        UpdateOpponentTargets();
+
         if (Input.GetKeyDown(switchTargetKey))
         {
             SelectNextTarget();
         }
 
         UpdateLockState();
+    }
+
+    private void UpdateOpponentTargets()
+    {
+        if (!automaticallyFindOpponents)
+        {
+            return;
+        }
+
+        targetRefreshTimer -= Time.deltaTime;
+
+        if (targetRefreshTimer <= 0f)
+        {
+            RefreshOpponentTargets();
+            targetRefreshTimer = targetRefreshInterval;
+        }
+    }
+
+    private void RefreshOpponentTargets()
+    {
+        if (!automaticallyFindOpponents || playerParticipant == null)
+        {
+            return;
+        }
+
+        Transform previousTarget = currentTarget;
+        targetCandidates.Clear();
+
+        foreach (BattleParticipant participant in BattleParticipant.AllParticipants)
+        {
+            if (participant != null
+                && participant.Team != playerParticipant.Team
+                && participant.IsAvailable)
+            {
+                targetCandidates.Add(participant.transform);
+            }
+        }
+
+        targetCandidates.Sort((left, right) =>
+        {
+            float leftDistance = (left.position - playerParticipant.transform.position).sqrMagnitude;
+            float rightDistance = (right.position - playerParticipant.transform.position).sqrMagnitude;
+            return leftDistance.CompareTo(rightDistance);
+        });
+
+        int previousIndex = targetCandidates.IndexOf(previousTarget);
+
+        if (previousIndex >= 0)
+        {
+            targetIndex = previousIndex;
+            return;
+        }
+
+        targetIndex = -1;
+
+        if (targetCandidates.Count > 0)
+        {
+            SelectNextTarget();
+        }
+        else
+        {
+            SetTarget(null);
+        }
     }
 
     public void SelectNextTarget()
@@ -122,5 +201,6 @@ public class LockOnController : MonoBehaviour
     private void OnValidate()
     {
         redLockDistance = Mathf.Max(0f, redLockDistance);
+        targetRefreshInterval = Mathf.Max(0.05f, targetRefreshInterval);
     }
 }
