@@ -14,6 +14,9 @@ public class SpecialMeleeController : MonoBehaviour
     [SerializeField] private PlayerMechController movementController;
     [SerializeField] private Animator animator;
 
+    [Header("Weapon Data")]
+    [SerializeField] private MeleeWeaponDefinition weaponDefinition;
+
     [Header("Rush")]
     [SerializeField] private float rushSpeed = 24f;
     [SerializeField] private float rushDuration = 0.45f;
@@ -79,9 +82,9 @@ public class SpecialMeleeController : MonoBehaviour
         UpdateRushDirection();
         Vector3 velocity = rb.linearVelocity;
         rb.linearVelocity = new Vector3(
-            rushDirection.x * rushSpeed,
+            rushDirection.x * GetRushSpeed(),
             velocity.y,
-            rushDirection.z * rushSpeed
+            rushDirection.z * GetRushSpeed()
         );
         TryHitTarget();
     }
@@ -91,7 +94,7 @@ public class SpecialMeleeController : MonoBehaviour
         if (isRushing
             || movementController == null
             || movementController.IsActionLocked()
-            || !movementController.TryConsumeBoost(boostCost))
+            || !movementController.TryConsumeBoost(GetBoostCost()))
         {
             return false;
         }
@@ -108,18 +111,20 @@ public class SpecialMeleeController : MonoBehaviour
         UpdateRushDirection();
         FaceRushDirection();
         movementController.ClearStepInputBuffer();
-        movementController.ApplyActionLock(rushDuration + recoveryTime, true);
+        movementController.ApplyActionLock(GetRushDuration() + GetRecoveryTime(), true);
 
-        if (animator != null && !string.IsNullOrWhiteSpace(animationTrigger))
+        string activeAnimationTrigger = GetAnimationTrigger();
+
+        if (animator != null && !string.IsNullOrWhiteSpace(activeAnimationTrigger))
         {
-            animator.SetTrigger(animationTrigger);
+            animator.SetTrigger(activeAnimationTrigger);
         }
 
         OnRushStarted?.Invoke();
-        yield return new WaitForSeconds(rushDuration);
+        yield return new WaitForSeconds(GetRushDuration());
 
         isRushing = false;
-        yield return new WaitForSeconds(recoveryTime);
+        yield return new WaitForSeconds(GetRecoveryTime());
 
         rushCoroutine = null;
         OnRushEnded?.Invoke();
@@ -178,21 +183,56 @@ public class SpecialMeleeController : MonoBehaviour
 
         Transform target = rushTarget;
 
-        if (target == null || Vector3.Distance(transform.position, target.position) > hitRange)
+        if (target == null
+            || Vector3.Distance(transform.position, target.position) > GetAttackRange())
         {
             return;
         }
 
         MechHealth health = target.GetComponentInParent<MechHealth>();
 
-        if (health != null && health.TakeDamage(damage))
+        if (health != null && health.TakeDamage(GetDamage()))
         {
             HitReactionController reaction = target.GetComponentInParent<HitReactionController>();
-            reaction?.ReceiveHit(transform.position, hitStunDuration, downValue, knockbackSpeed);
+            reaction?.ReceiveHit(
+                transform.position,
+                GetHitStunDuration(),
+                GetDownValue(),
+                GetKnockbackSpeed()
+            );
             hasHit = true;
             OnRushHit?.Invoke(health);
         }
     }
+
+    private float GetDamage() => weaponDefinition != null ? weaponDefinition.Damage : damage;
+    private float GetAttackRange() => weaponDefinition != null
+        ? weaponDefinition.AttackRange
+        : hitRange;
+    private float GetHitStunDuration() => weaponDefinition != null
+        ? weaponDefinition.HitStunDuration
+        : hitStunDuration;
+    private float GetDownValue() => weaponDefinition != null
+        ? weaponDefinition.DownValue
+        : downValue;
+    private float GetKnockbackSpeed() => weaponDefinition != null
+        ? weaponDefinition.KnockbackSpeed
+        : knockbackSpeed;
+    private float GetRushSpeed() => weaponDefinition != null
+        ? weaponDefinition.RushSpeed
+        : rushSpeed;
+    private float GetRushDuration() => weaponDefinition != null
+        ? weaponDefinition.RushDuration
+        : rushDuration;
+    private float GetRecoveryTime() => weaponDefinition != null
+        ? weaponDefinition.RecoveryTime
+        : recoveryTime;
+    private float GetBoostCost() => weaponDefinition != null
+        ? weaponDefinition.BoostCost
+        : boostCost;
+    private string GetAnimationTrigger() => weaponDefinition != null
+        ? weaponDefinition.SpecialAnimationTrigger
+        : animationTrigger;
 
     private void CancelRush()
     {

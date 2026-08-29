@@ -20,6 +20,9 @@ public class MeleeAttackController : MonoBehaviour
     [SerializeField] private PlayerMechController movementController;
     [SerializeField] private Animator animator;
 
+    [Header("Weapon Data")]
+    [SerializeField] private MeleeWeaponDefinition weaponDefinition;
+
     [Header("Attack")]
     [SerializeField] private float damage = 120f;
     [SerializeField] private float attackRange = 4f;
@@ -112,27 +115,27 @@ public class MeleeAttackController : MonoBehaviour
         FaceTarget();
         OnAttackStarted?.Invoke();
 
-        for (int comboIndex = 0; comboIndex < maxComboCount; comboIndex++)
+        for (int comboIndex = 0; comboIndex < GetMaxComboCount(); comboIndex++)
         {
             comboBuffered = false;
             canBufferCombo = false;
             movementController?.ApplyActionLock(
-                startupTime + comboInputWindow + recoveryTime,
+                GetStartupTime() + GetComboInputWindow() + GetRecoveryTime(),
                 true
             );
             PlayAttackAnimation(comboIndex);
             OnComboStageStarted?.Invoke(comboIndex + 1);
 
-            yield return new WaitForSeconds(startupTime);
+            yield return new WaitForSeconds(GetStartupTime());
             TryHitTarget(comboIndex);
 
-            canBufferCombo = comboIndex < maxComboCount - 1;
-            yield return new WaitForSeconds(comboInputWindow);
+            canBufferCombo = comboIndex < GetMaxComboCount() - 1;
+            yield return new WaitForSeconds(GetComboInputWindow());
             canBufferCombo = false;
 
             if (!comboBuffered)
             {
-                yield return new WaitForSeconds(recoveryTime);
+                yield return new WaitForSeconds(GetRecoveryTime());
                 break;
             }
         }
@@ -157,34 +160,35 @@ public class MeleeAttackController : MonoBehaviour
             ? forwardRangeMultiplier
             : 1f;
 
-        if (directionToTarget.magnitude > attackRange * rangeMultiplier)
+        if (directionToTarget.magnitude > GetAttackRange() * rangeMultiplier)
         {
             return;
         }
 
         float angle = Vector3.Angle(transform.forward, directionToTarget.normalized);
 
-        if (angle > hitAngle * 0.5f)
+        if (angle > GetHitAngle() * 0.5f)
         {
             return;
         }
 
         MechHealth health = target.GetComponentInParent<MechHealth>();
 
-        float comboDamage = damage
+        float comboDamage = GetDamage()
             * GetDirectionalDamageMultiplier()
-            * Mathf.Pow(comboDamageMultiplier, comboIndex)
+            * Mathf.Pow(GetComboDamageMultiplier(), comboIndex)
             * externalDamageMultiplier;
 
         if (health != null && health.TakeDamage(comboDamage))
         {
             HitReactionController reaction = target.GetComponentInParent<HitReactionController>();
-            float comboDownValue = downValue * Mathf.Pow(comboDownValueMultiplier, comboIndex);
+            float comboDownValue = GetDownValue()
+                * Mathf.Pow(GetComboDownValueMultiplier(), comboIndex);
             reaction?.ReceiveHit(
                 transform.position,
-                hitStunDuration,
+                GetHitStunDuration(),
                 comboDownValue,
-                knockbackSpeed
+                GetKnockbackSpeed()
             );
             OnAttackHit?.Invoke(health);
         }
@@ -253,15 +257,56 @@ public class MeleeAttackController : MonoBehaviour
         switch (activeDirection)
         {
             case MeleeDirection.Forward:
-                return forwardAnimationTrigger;
+                return weaponDefinition != null
+                    ? weaponDefinition.ForwardAnimationTrigger
+                    : forwardAnimationTrigger;
             case MeleeDirection.Backward:
-                return backwardAnimationTrigger;
+                return weaponDefinition != null
+                    ? weaponDefinition.BackwardAnimationTrigger
+                    : backwardAnimationTrigger;
             case MeleeDirection.Side:
-                return sideAnimationTrigger;
+                return weaponDefinition != null
+                    ? weaponDefinition.SideAnimationTrigger
+                    : sideAnimationTrigger;
             default:
-                return animationTrigger;
+                return weaponDefinition != null
+                    ? weaponDefinition.NeutralAnimationTrigger
+                    : animationTrigger;
         }
     }
+
+    private float GetDamage() => weaponDefinition != null ? weaponDefinition.Damage : damage;
+    private float GetAttackRange() => weaponDefinition != null
+        ? weaponDefinition.AttackRange
+        : attackRange;
+    private float GetHitAngle() => weaponDefinition != null ? weaponDefinition.HitAngle : hitAngle;
+    private float GetStartupTime() => weaponDefinition != null
+        ? weaponDefinition.StartupTime
+        : startupTime;
+    private float GetRecoveryTime() => weaponDefinition != null
+        ? weaponDefinition.RecoveryTime
+        : recoveryTime;
+    private float GetHitStunDuration() => weaponDefinition != null
+        ? weaponDefinition.HitStunDuration
+        : hitStunDuration;
+    private float GetDownValue() => weaponDefinition != null
+        ? weaponDefinition.DownValue
+        : downValue;
+    private float GetKnockbackSpeed() => weaponDefinition != null
+        ? weaponDefinition.KnockbackSpeed
+        : knockbackSpeed;
+    private int GetMaxComboCount() => weaponDefinition != null
+        ? weaponDefinition.MaxComboCount
+        : maxComboCount;
+    private float GetComboInputWindow() => weaponDefinition != null
+        ? weaponDefinition.ComboInputWindow
+        : comboInputWindow;
+    private float GetComboDamageMultiplier() => weaponDefinition != null
+        ? weaponDefinition.ComboDamageMultiplier
+        : comboDamageMultiplier;
+    private float GetComboDownValueMultiplier() => weaponDefinition != null
+        ? weaponDefinition.ComboDownValueMultiplier
+        : comboDownValueMultiplier;
 
     private void FaceTarget()
     {
