@@ -33,6 +33,9 @@ public class SpecialMeleeController : MonoBehaviour
     private bool isRushing;
     private bool hasHit;
     private Coroutine rushCoroutine;
+    private Transform rushTarget;
+    private PlayerMechController targetMovementController;
+    private int targetGuidanceCutVersion;
 
     public bool IsRushing => isRushing;
 
@@ -101,6 +104,7 @@ public class SpecialMeleeController : MonoBehaviour
     {
         isRushing = true;
         hasHit = false;
+        CaptureTargetingState();
         UpdateRushDirection();
         FaceRushDirection();
         movementController.ClearStepInputBuffer();
@@ -123,9 +127,16 @@ public class SpecialMeleeController : MonoBehaviour
 
     private void UpdateRushDirection()
     {
-        Transform target = lockOnController != null ? lockOnController.CurrentTarget : null;
-        Vector3 direction = target != null
-            ? target.position - transform.position
+        bool guidanceWasCut = targetMovementController != null
+            && targetMovementController.GuidanceCutVersion != targetGuidanceCutVersion;
+
+        if (guidanceWasCut && rushDirection.sqrMagnitude > 0.01f)
+        {
+            return;
+        }
+
+        Vector3 direction = rushTarget != null
+            ? rushTarget.position - transform.position
             : transform.forward;
         direction.y = 0f;
 
@@ -137,6 +148,17 @@ public class SpecialMeleeController : MonoBehaviour
         {
             rushDirection = transform.forward;
         }
+    }
+
+    private void CaptureTargetingState()
+    {
+        rushTarget = lockOnController != null ? lockOnController.CurrentTarget : null;
+        targetMovementController = rushTarget != null
+            ? rushTarget.GetComponentInParent<PlayerMechController>()
+            : null;
+        targetGuidanceCutVersion = targetMovementController != null
+            ? targetMovementController.GuidanceCutVersion
+            : 0;
     }
 
     private void FaceRushDirection()
@@ -154,7 +176,7 @@ public class SpecialMeleeController : MonoBehaviour
             return;
         }
 
-        Transform target = lockOnController != null ? lockOnController.CurrentTarget : null;
+        Transform target = rushTarget;
 
         if (target == null || Vector3.Distance(transform.position, target.position) > hitRange)
         {

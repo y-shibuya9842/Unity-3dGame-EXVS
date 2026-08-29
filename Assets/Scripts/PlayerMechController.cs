@@ -84,12 +84,14 @@ public class PlayerMechController : MonoBehaviour
     private float lastShortJumpTapTime = -999f;
 
     public event Action<Vector3> OnStepStarted;
+    public event Action OnGuidanceCut;
     public event Action OnBoostStarted;
     public event Action<float, float> OnBoostChanged;
 
     public float CurrentBoost => currentBoost;
     public float MaxBoost => maxBoost;
     public float NormalizedBoost => maxBoost > 0f ? currentBoost / maxBoost : 0f;
+    public int GuidanceCutVersion { get; private set; }
 
     private void Awake()
     {
@@ -528,6 +530,8 @@ public class PlayerMechController : MonoBehaviour
         }
 
         PlayOneShot(stepSound, stepVolume);
+        GuidanceCutVersion++;
+        OnGuidanceCut?.Invoke();
         OnStepStarted?.Invoke(stepDirection);
     }
 

@@ -15,14 +15,22 @@ public class HomingProjectile : MonoBehaviour
 
     private Transform target;
     private Transform ownerRoot;
+    private PlayerMechController targetMovementController;
     private Vector3 moveDirection;
     private bool homingEnabled;
     private float lifeTimer;
+    private int targetGuidanceCutVersion;
 
     public void Launch(Transform newTarget, Vector3 initialDirection, Transform owner, bool enableHoming)
     {
         target = newTarget;
         ownerRoot = owner != null ? owner.root : null;
+        targetMovementController = target != null
+            ? target.GetComponentInParent<PlayerMechController>()
+            : null;
+        targetGuidanceCutVersion = targetMovementController != null
+            ? targetMovementController.GuidanceCutVersion
+            : 0;
         homingEnabled = enableHoming;
         moveDirection = initialDirection.sqrMagnitude > 0.01f
             ? initialDirection.normalized
@@ -55,6 +63,13 @@ public class HomingProjectile : MonoBehaviour
 
     private void UpdateMoveDirection()
     {
+        if (targetMovementController != null
+            && targetMovementController.GuidanceCutVersion != targetGuidanceCutVersion)
+        {
+            // ステップされた弾は、その後も同じ対象への誘導を再開しない。
+            homingEnabled = false;
+        }
+
         if (!homingEnabled || target == null || homingStrength <= 0f)
         {
             return;

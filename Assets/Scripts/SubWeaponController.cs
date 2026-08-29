@@ -28,6 +28,9 @@ public class SubWeaponController : MonoBehaviour
     private float cooldownTimer;
     private float ammoRecoveryTimer;
     private Coroutine volleyCoroutine;
+    private Transform volleyTarget;
+    private PlayerMechController targetMovementController;
+    private int targetGuidanceCutVersion;
 
     public int CurrentAmmo => currentAmmo;
     public int MaxAmmo => maxAmmo;
@@ -67,6 +70,7 @@ public class SubWeaponController : MonoBehaviour
         cooldownTimer = useCooldown;
         movementController?.ClearStepInputBuffer();
         movementController?.ApplyActionLock(actionLockDuration, true);
+        CaptureTargetingState();
         volleyCoroutine = StartCoroutine(FireVolley());
         return true;
     }
@@ -100,8 +104,10 @@ public class SubWeaponController : MonoBehaviour
     private void FireProjectile(int index, int count)
     {
         Transform spawnPoint = firePoint != null ? firePoint : transform;
-        Transform target = lockOnController != null ? lockOnController.CurrentTarget : null;
-        Vector3 baseDirection = GetBaseDirection(spawnPoint, target);
+        bool guidanceWasCut = WasGuidanceCut();
+        Vector3 baseDirection = guidanceWasCut
+            ? spawnPoint.forward
+            : GetBaseDirection(spawnPoint, volleyTarget);
         float angle = count <= 1
             ? 0f
             : Mathf.Lerp(-spreadAngle * 0.5f, spreadAngle * 0.5f, (float)index / (count - 1));
@@ -114,7 +120,29 @@ public class SubWeaponController : MonoBehaviour
         );
         bool enableHoming = lockOnController == null
             || lockOnController.CurrentLockState == LockState.Red;
-        projectile.Launch(target, shootDirection, transform, enableHoming);
+        projectile.Launch(
+            volleyTarget,
+            shootDirection,
+            transform,
+            enableHoming && !guidanceWasCut
+        );
+    }
+
+    private void CaptureTargetingState()
+    {
+        volleyTarget = lockOnController != null ? lockOnController.CurrentTarget : null;
+        targetMovementController = volleyTarget != null
+            ? volleyTarget.GetComponentInParent<PlayerMechController>()
+            : null;
+        targetGuidanceCutVersion = targetMovementController != null
+            ? targetMovementController.GuidanceCutVersion
+            : 0;
+    }
+
+    private bool WasGuidanceCut()
+    {
+        return targetMovementController != null
+            && targetMovementController.GuidanceCutVersion != targetGuidanceCutVersion;
     }
 
     private static Vector3 GetBaseDirection(Transform spawnPoint, Transform target)

@@ -22,6 +22,9 @@ public class AwakeningBurstAttackController : MonoBehaviour
 
     private bool usedThisAwakening;
     private Coroutine attackCoroutine;
+    private Transform preparedTarget;
+    private PlayerMechController targetMovementController;
+    private int targetGuidanceCutVersion;
 
     public bool CanUse => awakeningController != null
         && awakeningController.IsAwakened
@@ -81,6 +84,7 @@ public class AwakeningBurstAttackController : MonoBehaviour
         movementController?.ClearStepInputBuffer();
         movementController?.ApplyActionLock(totalActionLock, false);
         FaceTarget();
+        CaptureTargetingState();
 
         if (animator != null && !string.IsNullOrWhiteSpace(animationTrigger))
         {
@@ -111,9 +115,10 @@ public class AwakeningBurstAttackController : MonoBehaviour
     private void FireProjectile()
     {
         Transform spawnPoint = firePoint != null ? firePoint : transform;
-        Transform target = lockOnController != null ? lockOnController.CurrentTarget : null;
-        Vector3 direction = target != null
-            ? target.position - spawnPoint.position
+        bool guidanceWasCut = targetMovementController != null
+            && targetMovementController.GuidanceCutVersion != targetGuidanceCutVersion;
+        Vector3 direction = !guidanceWasCut && preparedTarget != null
+            ? preparedTarget.position - spawnPoint.position
             : spawnPoint.forward;
 
         if (direction.sqrMagnitude <= 0.01f)
@@ -129,7 +134,23 @@ public class AwakeningBurstAttackController : MonoBehaviour
         );
         bool enableHoming = lockOnController == null
             || lockOnController.CurrentLockState == LockState.Red;
-        projectile.Launch(target, direction, transform, enableHoming);
+        projectile.Launch(
+            preparedTarget,
+            direction,
+            transform,
+            enableHoming && !guidanceWasCut
+        );
+    }
+
+    private void CaptureTargetingState()
+    {
+        preparedTarget = lockOnController != null ? lockOnController.CurrentTarget : null;
+        targetMovementController = preparedTarget != null
+            ? preparedTarget.GetComponentInParent<PlayerMechController>()
+            : null;
+        targetGuidanceCutVersion = targetMovementController != null
+            ? targetMovementController.GuidanceCutVersion
+            : 0;
     }
 
     private void FaceTarget()

@@ -31,6 +31,9 @@ public class SpecialShotController : MonoBehaviour
     private float cooldownTimer;
     private float ammoRecoveryTimer;
     private Coroutine shotCoroutine;
+    private Transform preparedTarget;
+    private PlayerMechController targetMovementController;
+    private int targetGuidanceCutVersion;
 
     public int CurrentAmmo => currentAmmo;
     public int MaxAmmo => maxAmmo;
@@ -81,6 +84,7 @@ public class SpecialShotController : MonoBehaviour
         movementController?.ClearStepInputBuffer();
         movementController?.ApplyActionLock(totalActionLock, true);
         FaceCurrentTarget();
+        CaptureTargetingState();
 
         if (animator != null && !string.IsNullOrWhiteSpace(animationTrigger))
         {
@@ -115,8 +119,10 @@ public class SpecialShotController : MonoBehaviour
     private void FireProjectile()
     {
         Transform spawnPoint = firePoint != null ? firePoint : transform;
-        Transform target = lockOnController != null ? lockOnController.CurrentTarget : null;
-        Vector3 shootDirection = GetShootDirection(spawnPoint, target);
+        bool guidanceWasCut = WasGuidanceCut();
+        Vector3 shootDirection = guidanceWasCut
+            ? spawnPoint.forward
+            : GetShootDirection(spawnPoint, preparedTarget);
         HomingProjectile projectile = Instantiate(
             projectilePrefab,
             spawnPoint.position,
@@ -124,7 +130,29 @@ public class SpecialShotController : MonoBehaviour
         );
         bool enableHoming = lockOnController == null
             || lockOnController.CurrentLockState == LockState.Red;
-        projectile.Launch(target, shootDirection, transform, enableHoming);
+        projectile.Launch(
+            preparedTarget,
+            shootDirection,
+            transform,
+            enableHoming && !guidanceWasCut
+        );
+    }
+
+    private void CaptureTargetingState()
+    {
+        preparedTarget = lockOnController != null ? lockOnController.CurrentTarget : null;
+        targetMovementController = preparedTarget != null
+            ? preparedTarget.GetComponentInParent<PlayerMechController>()
+            : null;
+        targetGuidanceCutVersion = targetMovementController != null
+            ? targetMovementController.GuidanceCutVersion
+            : 0;
+    }
+
+    private bool WasGuidanceCut()
+    {
+        return targetMovementController != null
+            && targetMovementController.GuidanceCutVersion != targetGuidanceCutVersion;
     }
 
     private static Vector3 GetShootDirection(Transform spawnPoint, Transform target)
