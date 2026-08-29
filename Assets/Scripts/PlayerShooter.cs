@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class PlayerShooter : MonoBehaviour
@@ -20,10 +21,24 @@ public class PlayerShooter : MonoBehaviour
     [SerializeField] private float turnShotAngle = 60f;
     [SerializeField] private float turnShotActionLock = 0.45f;
 
+    [Header("Ammo")]
+    [SerializeField] private int maxAmmo = 8;
+    [SerializeField] private float ammoRecoveryTime = 3f;
+
     private float shootCooldownTimer;
+    private float ammoRecoveryTimer;
+    private int currentAmmo;
+
+    public int CurrentAmmo => currentAmmo;
+    public int MaxAmmo => maxAmmo;
+
+    public event Action<int, int> OnAmmoChanged;
 
     private void Awake()
     {
+        currentAmmo = Mathf.Max(1, maxAmmo);
+        ammoRecoveryTimer = ammoRecoveryTime;
+
         if (movementController == null)
         {
             movementController = GetComponent<PlayerMechController>();
@@ -33,6 +48,7 @@ public class PlayerShooter : MonoBehaviour
     private void Update()
     {
         UpdateCooldown();
+        UpdateAmmoRecovery();
 
         if (Input.GetKeyDown(shootKey) && CanShoot())
         {
@@ -71,6 +87,8 @@ public class PlayerShooter : MonoBehaviour
         float actionLock = didTurnShot ? turnShotActionLock : shootActionLock;
         movementController?.ApplyActionLock(actionLock, true);
 
+        SetCurrentAmmo(currentAmmo - 1);
+        ammoRecoveryTimer = ammoRecoveryTime;
         shootCooldownTimer = shootCooldown;
     }
 
@@ -121,6 +139,7 @@ public class PlayerShooter : MonoBehaviour
     private bool CanShoot()
     {
         return shootCooldownTimer <= 0f
+            && currentAmmo > 0
             && (movementController == null || !movementController.IsActionLocked());
     }
 
@@ -130,5 +149,42 @@ public class PlayerShooter : MonoBehaviour
         {
             shootCooldownTimer -= Time.deltaTime;
         }
+    }
+
+    private void UpdateAmmoRecovery()
+    {
+        if (currentAmmo >= maxAmmo)
+        {
+            return;
+        }
+
+        ammoRecoveryTimer -= Time.deltaTime;
+
+        if (ammoRecoveryTimer > 0f)
+        {
+            return;
+        }
+
+        SetCurrentAmmo(currentAmmo + 1);
+        ammoRecoveryTimer = ammoRecoveryTime;
+    }
+
+    private void SetCurrentAmmo(int value)
+    {
+        int nextAmmo = Mathf.Clamp(value, 0, maxAmmo);
+
+        if (nextAmmo == currentAmmo)
+        {
+            return;
+        }
+
+        currentAmmo = nextAmmo;
+        OnAmmoChanged?.Invoke(currentAmmo, maxAmmo);
+    }
+
+    private void OnValidate()
+    {
+        maxAmmo = Mathf.Max(1, maxAmmo);
+        ammoRecoveryTime = Mathf.Max(0.01f, ammoRecoveryTime);
     }
 }
