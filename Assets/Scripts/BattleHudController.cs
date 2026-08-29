@@ -35,8 +35,26 @@ public class BattleHudController : MonoBehaviour
     [SerializeField] private TMP_Text playerCostText;
     [SerializeField] private TMP_Text enemyCostText;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void EnsureControllerExists()
+    {
+        GameObject battleUi = GameObject.Find("BattleUI");
+
+        if (battleUi != null && battleUi.GetComponent<BattleHudController>() == null)
+        {
+            battleUi.AddComponent<BattleHudController>();
+        }
+    }
+
+    private void Awake()
+    {
+        ResolveReferences();
+    }
+
     private void OnEnable()
     {
+        ResolveReferences();
+
         if (playerHealth != null)
         {
             playerHealth.OnHealthChanged += UpdateHealth;
@@ -190,7 +208,7 @@ public class BattleHudController : MonoBehaviour
     {
         if (ammoText != null)
         {
-            ammoText.text = $"AMMO {current}/{maximum}";
+            ammoText.text = $"AMMO {current}";
         }
     }
 
@@ -248,5 +266,70 @@ public class BattleHudController : MonoBehaviour
         gauge.minValue = 0f;
         gauge.maxValue = Mathf.Max(1f, maximum);
         gauge.value = Mathf.Clamp(current, 0f, gauge.maxValue);
+    }
+
+    private void ResolveReferences()
+    {
+        GameObject player = FindPlayerMech();
+
+        if (player != null)
+        {
+            playerHealth ??= player.GetComponent<MechHealth>();
+            playerMovement ??= player.GetComponent<PlayerMechController>();
+            playerShooter ??= player.GetComponent<PlayerShooter>();
+            subWeapon ??= player.GetComponent<SubWeaponController>();
+            specialShot ??= player.GetComponent<SpecialShotController>();
+            chargeShot ??= player.GetComponent<ChargeShotController>();
+            awakeningController ??= player.GetComponent<AwakeningController>();
+        }
+
+        battleManager ??= FindFirstObjectByType<BattleManager>(FindObjectsInactive.Include);
+        healthText ??= FindNamedComponent<TMP_Text>(transform, "HpText");
+        ammoText ??= FindNamedComponent<TMP_Text>(transform, "AmmoText");
+        boostGauge ??= FindNamedComponent<Slider>(transform, "BoostGauge");
+    }
+
+    private static GameObject FindPlayerMech()
+    {
+        BattleParticipant[] participants = FindObjectsByType<BattleParticipant>(
+            FindObjectsInactive.Exclude,
+            FindObjectsSortMode.None
+        );
+
+        foreach (BattleParticipant participant in participants)
+        {
+            if (participant.Team == BattleTeam.Player)
+            {
+                return participant.gameObject;
+            }
+        }
+
+        return null;
+    }
+
+    private static T FindNamedComponent<T>(Transform parent, string objectName)
+        where T : Component
+    {
+        if (parent == null)
+        {
+            return null;
+        }
+
+        if (parent.name.Trim() == objectName)
+        {
+            return parent.GetComponent<T>();
+        }
+
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            T match = FindNamedComponent<T>(parent.GetChild(i), objectName);
+
+            if (match != null)
+            {
+                return match;
+            }
+        }
+
+        return null;
     }
 }
