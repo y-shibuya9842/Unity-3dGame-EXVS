@@ -178,6 +178,12 @@ public class SubWeaponController : MonoBehaviour
             return;
         }
 
+        if (weaponDefinition != null
+            && !weaponDefinition.ShouldStartReload(currentAmmo))
+        {
+            return;
+        }
+
         ammoRecoveryTimer -= Time.deltaTime;
 
         if (ammoRecoveryTimer <= 0f)

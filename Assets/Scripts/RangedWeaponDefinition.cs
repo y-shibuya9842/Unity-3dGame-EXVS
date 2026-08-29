@@ -56,6 +56,17 @@ public class RangedWeaponDefinition : ScriptableObject
             : Mathf.Min(currentAmmo + 1, maxAmmo);
     }
 
+    public bool ShouldStartReload(int currentAmmo)
+    {
+        if (currentAmmo >= maxAmmo)
+        {
+            return false;
+        }
+
+        // 撃ち切りリロードは残弾が0になってからリロードを開始する。
+        return reloadMode == WeaponReloadMode.OneByOne || currentAmmo <= 0;
+    }
+
     private void OnValidate()
     {
         maxAmmo = Mathf.Max(1, maxAmmo);
