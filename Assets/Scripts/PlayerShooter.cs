@@ -3,9 +3,6 @@ using UnityEngine;
 
 public class PlayerShooter : MonoBehaviour
 {
-    [Header("Input")]
-    [SerializeField] private KeyCode shootKey = KeyCode.Mouse0;
-
     [Header("References")]
     [SerializeField] private Transform rotationRoot;
     [SerializeField] private Transform firePoint;
@@ -36,7 +33,6 @@ public class PlayerShooter : MonoBehaviour
 
     public int CurrentAmmo => currentAmmo;
     public int MaxAmmo => GetMaxAmmo();
-    public KeyCode ShootKey => shootKey;
 
     public event Action<int, int> OnAmmoChanged;
 
@@ -56,7 +52,8 @@ public class PlayerShooter : MonoBehaviour
         UpdateCooldown();
         UpdateAmmoRecovery();
 
-        if (playerInputEnabled && Input.GetKeyDown(shootKey))
+        if (playerInputEnabled
+            && VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.MainShot))
         {
             TryShoot();
         }

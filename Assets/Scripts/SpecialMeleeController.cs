@@ -6,9 +6,6 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public class SpecialMeleeController : MonoBehaviour
 {
-    [Header("Input")]
-    [SerializeField] private KeyCode specialMeleeKey = KeyCode.V;
-
     [Header("References")]
     [SerializeField] private LockOnController lockOnController;
     [SerializeField] private PlayerMechController movementController;
@@ -66,7 +63,7 @@ public class SpecialMeleeController : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(specialMeleeKey))
+        if (VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.SpecialMelee))
         {
             TryUse();
         }

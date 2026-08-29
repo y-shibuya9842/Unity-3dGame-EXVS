@@ -4,7 +4,6 @@ using UnityEngine;
 public class ShieldGuard : MonoBehaviour
 {
     [Header("Input")]
-    [SerializeField] private KeyCode directGuardKey = KeyCode.Mouse1;
     [SerializeField] private float leverInputWindow = 0.3f;
 
     [Header("Guard")]
@@ -19,6 +18,7 @@ public class ShieldGuard : MonoBehaviour
     private bool isGuarding;
     private bool downInputArmed;
     private float downInputTime;
+    private Vector2 previousMoveInput;
 
     public bool IsGuarding => isGuarding;
 
@@ -40,7 +40,7 @@ public class ShieldGuard : MonoBehaviour
     {
         UpdateLeverInput();
 
-        if (Input.GetKeyDown(directGuardKey))
+        if (VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.Guard))
         {
             StartGuard();
         }
@@ -50,9 +50,8 @@ public class ShieldGuard : MonoBehaviour
             return;
         }
 
-        bool keepGuarding = Input.GetKey(directGuardKey)
-            || Input.GetKey(KeyCode.W)
-            || Input.GetKey(KeyCode.UpArrow);
+        bool keepGuarding = VersusInputManager.Instance.IsPressed(VersusInputAction.Guard)
+            || VersusInputManager.Instance.ReadMove().y > 0.5f;
 
         if (!keepGuarding || movementController == null)
         {
@@ -95,7 +94,12 @@ public class ShieldGuard : MonoBehaviour
 
     private void UpdateLeverInput()
     {
-        if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow))
+        Vector2 moveInput = VersusInputManager.Instance.ReadMove();
+        bool pressedDown = moveInput.y < -0.5f && previousMoveInput.y >= -0.5f;
+        bool pressedForward = moveInput.y > 0.5f && previousMoveInput.y <= 0.5f;
+        previousMoveInput = moveInput;
+
+        if (pressedDown)
         {
             downInputArmed = true;
             downInputTime = Time.time;
@@ -105,8 +109,6 @@ public class ShieldGuard : MonoBehaviour
         {
             downInputArmed = false;
         }
-
-        bool pressedForward = Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow);
 
         if (downInputArmed && pressedForward)
         {

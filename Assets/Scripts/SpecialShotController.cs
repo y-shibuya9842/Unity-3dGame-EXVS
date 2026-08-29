@@ -4,9 +4,6 @@ using UnityEngine;
 
 public class SpecialShotController : MonoBehaviour
 {
-    [Header("Input")]
-    [SerializeField] private KeyCode specialShotKey = KeyCode.C;
-
     [Header("References")]
     [SerializeField] private Transform rotationRoot;
     [SerializeField] private Transform firePoint;
@@ -68,7 +65,7 @@ public class SpecialShotController : MonoBehaviour
     {
         UpdateTimers();
 
-        if (Input.GetKeyDown(specialShotKey))
+        if (VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.SpecialShot))
         {
             TryUse();
         }

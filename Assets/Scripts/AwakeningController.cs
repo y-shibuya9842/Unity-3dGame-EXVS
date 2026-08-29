@@ -12,9 +12,6 @@ public enum AwakeningType
 
 public class AwakeningController : MonoBehaviour
 {
-    [Header("Input")]
-    [SerializeField] private KeyCode awakeningKey = KeyCode.R;
-
     [Header("Gauge")]
     [SerializeField] private float maxGauge = 100f;
     [SerializeField] private float activationCost = 100f;
@@ -79,7 +76,8 @@ public class AwakeningController : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(awakeningKey) && CanActivate())
+        if (VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.Awakening)
+            && CanActivate())
         {
             StartCoroutine(AwakeningRoutine());
         }

@@ -61,6 +61,8 @@ public class PlayerMechController : MonoBehaviour
     private Vector3 moveDirection;
     private Vector3 boostDirection;
     private Vector2 rawMoveInput;
+    private Vector2 previousMoveInput;
+    private Vector2 directionPressedThisFrame;
     private Vector2 lastStepInput = Vector2.zero;
     private Vector2 activeStepInput = Vector2.zero;
     private Vector3 stepDirection;
@@ -122,6 +124,7 @@ public class PlayerMechController : MonoBehaviour
         UpdateActionLock();
 
         rawMoveInput = GetRawMoveInput();
+        UpdateDirectionPressedThisFrame();
         moveDirection = GetCameraRelativeMoveDirection(rawMoveInput.x, rawMoveInput.y);
 
         if (IsActionLocked())
@@ -137,12 +140,12 @@ public class PlayerMechController : MonoBehaviour
 
         HandleStepInput(rawMoveInput);
 
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.Jump))
         {
             HandleJumpButtonDown();
         }
 
-        if (Input.GetKeyUp(KeyCode.Space))
+        if (VersusInputManager.Instance.WasReleasedThisFrame(VersusInputAction.Jump))
         {
             HandleJumpButtonUp();
         }
@@ -450,12 +453,12 @@ public class PlayerMechController : MonoBehaviour
 
     private void HandleBoostCancelInput()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.Jump))
         {
             HandleJumpButtonDown();
         }
 
-        if (Input.GetKeyUp(KeyCode.Space))
+        if (VersusInputManager.Instance.WasReleasedThisFrame(VersusInputAction.Jump))
         {
             HandleJumpButtonUp();
         }
@@ -510,7 +513,7 @@ public class PlayerMechController : MonoBehaviour
                     && transformationController.TryHandleStepInput(
                         dominantInput,
                         worldDirection,
-                        Input.GetKey(KeyCode.Space)
+                        VersusInputManager.Instance.IsPressed(VersusInputAction.Jump)
                     );
 
                 if (transformationHandled)
@@ -665,30 +668,25 @@ public class PlayerMechController : MonoBehaviour
 
     private static Vector2 GetRawMoveInput()
     {
-        float horizontal = 0f;
-        float vertical = 0f;
+        Vector2 input = VersusInputManager.Instance.ReadMove();
 
-        if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
+        if (input.sqrMagnitude < 0.04f)
         {
-            horizontal -= 1f;
+            return Vector2.zero;
         }
 
-        if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
-        {
-            horizontal += 1f;
-        }
+        return Vector2.ClampMagnitude(input, 1f);
+    }
 
-        if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
-        {
-            vertical -= 1f;
-        }
-
-        if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
-        {
-            vertical += 1f;
-        }
-
-        return new Vector2(horizontal, vertical);
+    private void UpdateDirectionPressedThisFrame()
+    {
+        Vector2 currentDirection = GetDominantInput(rawMoveInput);
+        Vector2 previousDirection = GetDominantInput(previousMoveInput);
+        directionPressedThisFrame = currentDirection != Vector2.zero
+            && currentDirection != previousDirection
+            ? currentDirection
+            : Vector2.zero;
+        previousMoveInput = rawMoveInput;
     }
 
     private static Vector2 GetDominantInput(Vector2 input)
@@ -706,29 +704,9 @@ public class PlayerMechController : MonoBehaviour
         return Vector2.zero;
     }
 
-    private static bool IsDirectionPressedThisFrame(Vector2 direction)
+    private bool IsDirectionPressedThisFrame(Vector2 direction)
     {
-        if (direction == Vector2.up)
-        {
-            return Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow);
-        }
-
-        if (direction == Vector2.down)
-        {
-            return Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow);
-        }
-
-        if (direction == Vector2.left)
-        {
-            return Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow);
-        }
-
-        if (direction == Vector2.right)
-        {
-            return Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow);
-        }
-
-        return false;
+        return direction == directionPressedThisFrame;
     }
 
     private Vector3 GetCameraRelativeMoveDirection(float horizontal, float vertical)

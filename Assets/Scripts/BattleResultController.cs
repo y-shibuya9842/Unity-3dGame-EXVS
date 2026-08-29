@@ -42,7 +42,8 @@ public class BattleResultController : MonoBehaviour
 
     private void Update()
     {
-        if (resultDisplayed && Input.GetKeyDown(KeyCode.Return))
+        if (resultDisplayed
+            && VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.Retry))
         {
             RetryBattle();
         }

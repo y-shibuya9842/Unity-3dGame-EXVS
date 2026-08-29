@@ -12,9 +12,6 @@ public class MeleeAttackController : MonoBehaviour
         Side
     }
 
-    [Header("Input")]
-    [SerializeField] private KeyCode meleeKey = KeyCode.F;
-
     [Header("References")]
     [SerializeField] private LockOnController lockOnController;
     [SerializeField] private PlayerMechController movementController;
@@ -81,7 +78,7 @@ public class MeleeAttackController : MonoBehaviour
 
     private void Update()
     {
-        if (!Input.GetKeyDown(meleeKey))
+        if (!VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.Melee))
         {
             return;
         }
@@ -196,20 +193,19 @@ public class MeleeAttackController : MonoBehaviour
 
     private MeleeDirection ReadMeleeDirection()
     {
-        if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
+        Vector2 moveInput = VersusInputManager.Instance.ReadMove();
+
+        if (moveInput.y > 0.5f)
         {
             return MeleeDirection.Forward;
         }
 
-        if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
+        if (moveInput.y < -0.5f)
         {
             return MeleeDirection.Backward;
         }
 
-        if (Input.GetKey(KeyCode.A)
-            || Input.GetKey(KeyCode.LeftArrow)
-            || Input.GetKey(KeyCode.D)
-            || Input.GetKey(KeyCode.RightArrow))
+        if (Mathf.Abs(moveInput.x) > 0.5f)
         {
             return MeleeDirection.Side;
         }

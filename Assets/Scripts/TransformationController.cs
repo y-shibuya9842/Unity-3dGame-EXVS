@@ -162,7 +162,7 @@ public class TransformationController : MonoBehaviour
 
     private void HandleVerticalMoveInput()
     {
-        if (!Input.GetKeyDown(KeyCode.Space))
+        if (!VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.Jump))
         {
             return;
         }
@@ -176,14 +176,7 @@ public class TransformationController : MonoBehaviour
 
     private static bool HasMoveInput()
     {
-        return Input.GetKey(KeyCode.W)
-            || Input.GetKey(KeyCode.A)
-            || Input.GetKey(KeyCode.S)
-            || Input.GetKey(KeyCode.D)
-            || Input.GetKey(KeyCode.UpArrow)
-            || Input.GetKey(KeyCode.LeftArrow)
-            || Input.GetKey(KeyCode.DownArrow)
-            || Input.GetKey(KeyCode.RightArrow);
+        return VersusInputManager.Instance.ReadMove().sqrMagnitude > 0.04f;
     }
 
     public void EndTransformation()

@@ -15,7 +15,6 @@ public class LockOnController : MonoBehaviour
     [SerializeField] private Transform player;
     [SerializeField] private BattleParticipant playerParticipant;
     [SerializeField] private List<Transform> targetCandidates = new List<Transform>();
-    [SerializeField] private KeyCode switchTargetKey = KeyCode.Tab;
     [SerializeField] private bool automaticallyFindOpponents = true;
     [SerializeField] private float targetRefreshInterval = 0.5f;
 
@@ -57,7 +56,7 @@ public class LockOnController : MonoBehaviour
     {
         UpdateOpponentTargets();
 
-        if (Input.GetKeyDown(switchTargetKey))
+        if (VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.Search))
         {
             SelectNextTarget();
         }

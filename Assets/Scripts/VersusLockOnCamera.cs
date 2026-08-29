@@ -8,7 +8,6 @@ public class VersusLockOnCamera : MonoBehaviour
     [SerializeField] private Transform lookTarget;
     [SerializeField] private List<Transform> targetCandidates = new List<Transform>();
     [SerializeField] private bool handleTargetSwitchInput;
-    [SerializeField] private KeyCode switchTargetKey = KeyCode.Tab;
 
     [Header("Camera Offset")]
     [SerializeField] private Vector3 lockOnOffset = new Vector3(0f, 3f, -8f);
@@ -45,7 +44,8 @@ public class VersusLockOnCamera : MonoBehaviour
             return;
         }
 
-        if (handleTargetSwitchInput && Input.GetKeyDown(switchTargetKey))
+        if (handleTargetSwitchInput
+            && VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.Search))
         {
             SwitchToNextTarget();
         }

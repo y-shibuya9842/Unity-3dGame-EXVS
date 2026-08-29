@@ -4,9 +4,6 @@ using UnityEngine;
 
 public class AwakeningBurstAttackController : MonoBehaviour
 {
-    [Header("Input")]
-    [SerializeField] private KeyCode burstAttackKey = KeyCode.T;
-
     [Header("References")]
     [SerializeField] private AwakeningController awakeningController;
     [SerializeField] private PlayerMechController movementController;
@@ -62,7 +59,7 @@ public class AwakeningBurstAttackController : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(burstAttackKey))
+        if (VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.BurstAttack))
         {
             TryUse();
         }

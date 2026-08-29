@@ -4,10 +4,6 @@ using UnityEngine;
 [DefaultExecutionOrder(-100)]
 public class ChargeShotController : MonoBehaviour
 {
-    [Header("Input")]
-    [SerializeField] private bool useMainShootKey = true;
-    [SerializeField] private KeyCode chargeKey = KeyCode.E;
-
     [Header("References")]
     [SerializeField] private Transform firePoint;
     [SerializeField] private HomingProjectile chargedProjectilePrefab;
@@ -48,29 +44,21 @@ public class ChargeShotController : MonoBehaviour
 
     private void Update()
     {
-        KeyCode activeKey = GetActiveKey();
-
-        if (Input.GetKeyDown(activeKey))
+        if (VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.MainShot))
         {
             BeginCharge();
         }
 
-        if (isCharging && Input.GetKey(activeKey))
+        if (isCharging && VersusInputManager.Instance.IsPressed(VersusInputAction.MainShot))
         {
             UpdateCharge();
         }
 
-        if (isCharging && Input.GetKeyUp(activeKey))
+        if (isCharging
+            && VersusInputManager.Instance.WasReleasedThisFrame(VersusInputAction.MainShot))
         {
             ReleaseCharge();
         }
-    }
-
-    private KeyCode GetActiveKey()
-    {
-        return useMainShootKey && mainShooter != null
-            ? mainShooter.ShootKey
-            : chargeKey;
     }
 
     private void BeginCharge()

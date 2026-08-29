@@ -4,9 +4,6 @@ using UnityEngine;
 
 public class SubWeaponController : MonoBehaviour
 {
-    [Header("Input")]
-    [SerializeField] private KeyCode subWeaponKey = KeyCode.Q;
-
     [Header("References")]
     [SerializeField] private Transform firePoint;
     [SerializeField] private HomingProjectile projectilePrefab;
@@ -55,7 +52,7 @@ public class SubWeaponController : MonoBehaviour
     {
         UpdateTimers();
 
-        if (Input.GetKeyDown(subWeaponKey))
+        if (VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.SubShot))
         {
             TryUse();
         }
