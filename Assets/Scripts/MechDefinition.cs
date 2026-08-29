@@ -26,6 +26,12 @@ public class MechDefinition : ScriptableObject
     [SerializeField] private MeleeWeaponDefinition melee;
     [SerializeField] private MeleeWeaponDefinition specialMelee;
 
+    [Header("方向入力による格闘武装")]
+    [SerializeField] private MeleeWeaponDefinition forwardMelee;
+    [SerializeField] private MeleeWeaponDefinition sideMelee;
+    [SerializeField] private MeleeWeaponDefinition backwardMelee;
+    [SerializeField] private MeleeWeaponDefinition boostDashMelee;
+
     [Header("方向入力による派生武装")]
     [SerializeField] private RangedWeaponDefinition directionalChargeShot;
     [SerializeField] private RangedWeaponDefinition directionalSubShot;
@@ -48,6 +54,10 @@ public class MechDefinition : ScriptableObject
     public RangedWeaponDefinition BurstAttack => burstAttack;
     public MeleeWeaponDefinition Melee => melee;
     public MeleeWeaponDefinition SpecialMelee => specialMelee;
+    public MeleeWeaponDefinition ForwardMelee => forwardMelee;
+    public MeleeWeaponDefinition SideMelee => sideMelee;
+    public MeleeWeaponDefinition BackwardMelee => backwardMelee;
+    public MeleeWeaponDefinition BoostDashMelee => boostDashMelee;
     public RangedWeaponDefinition DirectionalChargeShot => directionalChargeShot;
     public RangedWeaponDefinition DirectionalSubShot => directionalSubShot;
     public RangedWeaponDefinition DirectionalSpecialShot => directionalSpecialShot;
