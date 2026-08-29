@@ -7,6 +7,7 @@ public class BattleHudController : MonoBehaviour
     [Header("Player")]
     [SerializeField] private MechHealth playerHealth;
     [SerializeField] private PlayerMechController playerMovement;
+    [SerializeField] private PlayerShooter playerShooter;
 
     [Header("Health UI")]
     [SerializeField] private TMP_Text healthText;
@@ -14,6 +15,9 @@ public class BattleHudController : MonoBehaviour
 
     [Header("Boost UI")]
     [SerializeField] private Slider boostGauge;
+
+    [Header("Ammo UI")]
+    [SerializeField] private TMP_Text ammoText;
 
     private void OnEnable()
     {
@@ -25,6 +29,11 @@ public class BattleHudController : MonoBehaviour
         if (playerMovement != null)
         {
             playerMovement.OnBoostChanged += UpdateBoost;
+        }
+
+        if (playerShooter != null)
+        {
+            playerShooter.OnAmmoChanged += UpdateAmmo;
         }
     }
 
@@ -39,6 +48,11 @@ public class BattleHudController : MonoBehaviour
         {
             UpdateBoost(playerMovement.CurrentBoost, playerMovement.MaxBoost);
         }
+
+        if (playerShooter != null)
+        {
+            UpdateAmmo(playerShooter.CurrentAmmo, playerShooter.MaxAmmo);
+        }
     }
 
     private void OnDisable()
@@ -51,6 +65,11 @@ public class BattleHudController : MonoBehaviour
         if (playerMovement != null)
         {
             playerMovement.OnBoostChanged -= UpdateBoost;
+        }
+
+        if (playerShooter != null)
+        {
+            playerShooter.OnAmmoChanged -= UpdateAmmo;
         }
     }
 
@@ -67,6 +86,14 @@ public class BattleHudController : MonoBehaviour
     private void UpdateBoost(float current, float maximum)
     {
         UpdateGauge(boostGauge, current, maximum);
+    }
+
+    private void UpdateAmmo(int current, int maximum)
+    {
+        if (ammoText != null)
+        {
+            ammoText.text = $"AMMO {current}/{maximum}";
+        }
     }
 
     private static void UpdateGauge(Slider gauge, float current, float maximum)
