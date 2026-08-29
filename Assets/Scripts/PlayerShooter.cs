@@ -11,6 +11,7 @@ public class PlayerShooter : MonoBehaviour
     [SerializeField] private Transform target;
     [SerializeField] private HomingProjectile projectilePrefab;
     [SerializeField] private PlayerMechController movementController;
+    [SerializeField] private LockOnController lockOnController;
 
     [Header("Shoot")]
     [SerializeField] private float shootCooldown = 0.25f;
@@ -63,7 +64,9 @@ public class PlayerShooter : MonoBehaviour
             Quaternion.LookRotation(shootDirection, Vector3.up)
         );
 
-        projectile.Launch(target, shootDirection, transform);
+        bool enableHoming = lockOnController == null
+            || lockOnController.CurrentLockState == LockState.Red;
+        projectile.Launch(target, shootDirection, transform, enableHoming);
         
         float actionLock = didTurnShot ? turnShotActionLock : shootActionLock;
         movementController?.ApplyActionLock(actionLock, true);

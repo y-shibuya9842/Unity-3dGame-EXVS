@@ -13,12 +13,14 @@ public class HomingProjectile : MonoBehaviour
     private Transform target;
     private Transform ownerRoot;
     private Vector3 moveDirection;
+    private bool homingEnabled;
     private float lifeTimer;
 
-    public void Launch(Transform newTarget, Vector3 initialDirection, Transform owner)
+    public void Launch(Transform newTarget, Vector3 initialDirection, Transform owner, bool enableHoming)
     {
         target = newTarget;
         ownerRoot = owner != null ? owner.root : null;
+        homingEnabled = enableHoming;
         moveDirection = initialDirection.sqrMagnitude > 0.01f
             ? initialDirection.normalized
             : transform.forward;
@@ -50,7 +52,7 @@ public class HomingProjectile : MonoBehaviour
 
     private void UpdateMoveDirection()
     {
-        if (target == null || homingStrength <= 0f)
+        if (!homingEnabled || target == null || homingStrength <= 0f)
         {
             return;
         }
