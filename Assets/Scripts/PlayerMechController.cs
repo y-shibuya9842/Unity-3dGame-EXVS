@@ -82,6 +82,7 @@ public class PlayerMechController : MonoBehaviour
     private float lastShortJumpTapTime = -999f;
 
     public event Action<Vector3> OnStepStarted;
+    public event Action OnBoostStarted;
     public event Action<float, float> OnBoostChanged;
 
     public float CurrentBoost => currentBoost;
@@ -304,6 +305,7 @@ public class PlayerMechController : MonoBehaviour
         isBoosting = true;
         boostDirection = GetBoostDirection();
         PlayOneShot(boostDashSound, boostDashVolume);
+        OnBoostStarted?.Invoke();
 
         Vector3 velocity = rb.linearVelocity;
         Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
