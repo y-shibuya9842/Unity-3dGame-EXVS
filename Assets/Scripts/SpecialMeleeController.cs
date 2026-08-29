@@ -23,6 +23,9 @@ public class SpecialMeleeController : MonoBehaviour
     [Header("Hit")]
     [SerializeField] private float damage = 100f;
     [SerializeField] private float hitRange = 2.5f;
+    [SerializeField] private float hitStunDuration = 0.5f;
+    [SerializeField] private float downValue = 50f;
+    [SerializeField] private float knockbackSpeed = 6f;
     [SerializeField] private string animationTrigger = "SpecialMelee";
 
     private Rigidbody rb;
@@ -162,6 +165,8 @@ public class SpecialMeleeController : MonoBehaviour
 
         if (health != null && health.TakeDamage(damage))
         {
+            HitReactionController reaction = target.GetComponentInParent<HitReactionController>();
+            reaction?.ReceiveHit(transform.position, hitStunDuration, downValue, knockbackSpeed);
             hasHit = true;
             OnRushHit?.Invoke(health);
         }
@@ -198,5 +203,8 @@ public class SpecialMeleeController : MonoBehaviour
         boostCost = Mathf.Max(0f, boostCost);
         damage = Mathf.Max(0f, damage);
         hitRange = Mathf.Max(0.1f, hitRange);
+        hitStunDuration = Mathf.Max(0f, hitStunDuration);
+        downValue = Mathf.Max(0f, downValue);
+        knockbackSpeed = Mathf.Max(0f, knockbackSpeed);
     }
 }

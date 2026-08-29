@@ -9,6 +9,9 @@ public class HomingProjectile : MonoBehaviour
     [SerializeField] private float homingStrength = 8f;
     [SerializeField] private float lifetime = 3f;
     [SerializeField] private float damage = 75f;
+    [SerializeField] private float hitStunDuration = 0.25f;
+    [SerializeField] private float downValue = 20f;
+    [SerializeField] private float knockbackSpeed = 2f;
 
     private Transform target;
     private Transform ownerRoot;
@@ -99,7 +102,13 @@ public class HomingProjectile : MonoBehaviour
         }
 
         MechHealth health = other.GetComponentInParent<MechHealth>();
-        health?.TakeDamage(damage);
+
+        if (health != null && health.TakeDamage(damage))
+        {
+            HitReactionController reaction = other.GetComponentInParent<HitReactionController>();
+            reaction?.ReceiveHit(transform.position, hitStunDuration, downValue, knockbackSpeed);
+        }
+
         Destroy(gameObject);
     }
 
@@ -110,5 +119,8 @@ public class HomingProjectile : MonoBehaviour
         homingStrength = Mathf.Max(0f, homingStrength);
         lifetime = Mathf.Max(0.01f, lifetime);
         damage = Mathf.Max(0f, damage);
+        hitStunDuration = Mathf.Max(0f, hitStunDuration);
+        downValue = Mathf.Max(0f, downValue);
+        knockbackSpeed = Mathf.Max(0f, knockbackSpeed);
     }
 }

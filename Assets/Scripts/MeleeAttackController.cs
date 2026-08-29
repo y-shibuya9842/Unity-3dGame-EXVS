@@ -18,6 +18,9 @@ public class MeleeAttackController : MonoBehaviour
     [SerializeField, Range(1f, 180f)] private float hitAngle = 70f;
     [SerializeField] private float startupTime = 0.15f;
     [SerializeField] private float recoveryTime = 0.35f;
+    [SerializeField] private float hitStunDuration = 0.4f;
+    [SerializeField] private float downValue = 35f;
+    [SerializeField] private float knockbackSpeed = 4f;
     [SerializeField] private string animationTrigger = "Melee";
 
     private bool isAttacking;
@@ -106,6 +109,8 @@ public class MeleeAttackController : MonoBehaviour
 
         if (health != null && health.TakeDamage(damage))
         {
+            HitReactionController reaction = target.GetComponentInParent<HitReactionController>();
+            reaction?.ReceiveHit(transform.position, hitStunDuration, downValue, knockbackSpeed);
             OnAttackHit?.Invoke(health);
         }
     }
@@ -157,5 +162,8 @@ public class MeleeAttackController : MonoBehaviour
         attackRange = Mathf.Max(0.1f, attackRange);
         startupTime = Mathf.Max(0f, startupTime);
         recoveryTime = Mathf.Max(0f, recoveryTime);
+        hitStunDuration = Mathf.Max(0f, hitStunDuration);
+        downValue = Mathf.Max(0f, downValue);
+        knockbackSpeed = Mathf.Max(0f, knockbackSpeed);
     }
 }

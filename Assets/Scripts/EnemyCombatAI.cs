@@ -7,6 +7,7 @@ public class EnemyCombatAI : MonoBehaviour
     [SerializeField] private Transform target;
     [SerializeField] private PlayerShooter shooter;
     [SerializeField] private MechHealth health;
+    [SerializeField] private HitReactionController hitReaction;
 
     [Header("Movement")]
     [SerializeField] private float preferredDistance = 18f;
@@ -36,6 +37,11 @@ public class EnemyCombatAI : MonoBehaviour
         if (health == null)
         {
             health = GetComponent<MechHealth>();
+        }
+
+        if (hitReaction == null)
+        {
+            hitReaction = GetComponent<HitReactionController>();
         }
 
         shooter?.SetPlayerInputEnabled(false);
@@ -78,7 +84,9 @@ public class EnemyCombatAI : MonoBehaviour
 
     private bool CanAct()
     {
-        return target != null && (health == null || !health.IsDestroyed);
+        return target != null
+            && (health == null || !health.IsDestroyed)
+            && (hitReaction == null || !hitReaction.IsReacting);
     }
 
     private void MoveAroundTarget()
