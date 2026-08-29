@@ -17,6 +17,7 @@ public static class GundamPrefabBuilder
     static GundamPrefabBuilder()
     {
         EditorApplication.delayCall += GenerateIfMissing;
+        EditorApplication.playModeStateChanged += HandlePlayModeStateChanged;
     }
 
     [MenuItem("EXVS/機体/ガンダムを再生成")]
@@ -27,13 +28,27 @@ public static class GundamPrefabBuilder
 
     private static void GenerateIfMissing()
     {
-        if (EditorApplication.isPlayingOrWillChangePlaymode
-            || AssetDatabase.LoadAssetAtPath<GameObject>(GundamPrefabPath) != null)
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
         {
             return;
         }
 
-        Generate(false);
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(GundamPrefabPath);
+        bool needsModelCleanup = prefab != null
+            && prefab.GetComponentInChildren<CharacterController>(true) != null;
+
+        if (prefab == null || needsModelCleanup)
+        {
+            Generate(needsModelCleanup);
+        }
+    }
+
+    private static void HandlePlayModeStateChanged(PlayModeStateChange state)
+    {
+        if (state == PlayModeStateChange.EnteredEditMode)
+        {
+            EditorApplication.delayCall += GenerateIfMissing;
+        }
     }
 
     private static void Generate(bool overwritePrefab)
@@ -325,11 +340,33 @@ public static class GundamPrefabBuilder
         }
 
         GameObject model = PrefabUtility.InstantiatePrefab(modelPrefab) as GameObject;
+        PrefabUtility.UnpackPrefabInstance(
+            model,
+            PrefabUnpackMode.Completely,
+            InteractionMode.AutomatedAction
+        );
         model.name = "Model";
         model.transform.SetParent(parent, false);
         model.transform.localPosition = Vector3.zero;
         model.transform.localRotation = Quaternion.identity;
         model.transform.localScale = Vector3.one;
+
+        // 仮モデル側の移動・入力・当たり判定を外し、見た目とアニメーターだけを使用する。
+        foreach (MonoBehaviour behaviour in model.GetComponentsInChildren<MonoBehaviour>(true))
+        {
+            UnityEngine.Object.DestroyImmediate(behaviour);
+        }
+
+        foreach (Collider collider in model.GetComponentsInChildren<Collider>(true))
+        {
+            UnityEngine.Object.DestroyImmediate(collider);
+        }
+
+        foreach (Rigidbody rigidbody in model.GetComponentsInChildren<Rigidbody>(true))
+        {
+            UnityEngine.Object.DestroyImmediate(rigidbody);
+        }
+
         return model.GetComponentInChildren<Animator>();
     }
 

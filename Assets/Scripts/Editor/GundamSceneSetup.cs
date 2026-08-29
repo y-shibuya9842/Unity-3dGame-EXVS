@@ -46,6 +46,7 @@ public static class GundamSceneSetup
         }
 
         DisableOldPlayerObjects(scene, playerMech);
+        ConfigureEnemy(enemyMech);
         ConfigureCamera(scene, gundam, enemyMech);
         ConfigureLockOn(gundam);
         ConfigureBattleParticipant(gundam);
@@ -75,10 +76,13 @@ public static class GundamSceneSetup
         }
 
         GameObject gundam = FindInScene(scene, "Gundam");
+        GameObject enemyMech = FindInScene(scene, "EnemyMech");
         bool cameraSetupIsMissing = gundam != null
             && FindComponentInScene<VersusLockOnCamera>(scene) == null;
+        bool enemySetupIsMissing = enemyMech != null
+            && enemyMech.GetComponent<BattleParticipant>() == null;
 
-        if ((gundam != null && !cameraSetupIsMissing)
+        if ((gundam != null && !cameraSetupIsMissing && !enemySetupIsMissing)
             || (gundam == null && FindInScene(scene, "PlayerMech") == null))
         {
             return;
@@ -185,6 +189,40 @@ public static class GundamSceneSetup
         {
             SetObjectReference(participant, "battleManager", battleManager);
         }
+    }
+
+    private static void ConfigureEnemy(GameObject enemyMech)
+    {
+        if (enemyMech == null)
+        {
+            return;
+        }
+
+        MechHealth health = enemyMech.GetComponent<MechHealth>();
+
+        if (health == null)
+        {
+            health = Undo.AddComponent<MechHealth>(enemyMech);
+        }
+
+        BattleParticipant participant = enemyMech.GetComponent<BattleParticipant>();
+
+        if (participant == null)
+        {
+            participant = Undo.AddComponent<BattleParticipant>(enemyMech);
+        }
+
+        SerializedObject serialized = new SerializedObject(participant);
+        SerializedProperty team = serialized.FindProperty("team");
+        SerializedProperty healthReference = serialized.FindProperty("health");
+        SerializedProperty battleManagerReference = serialized.FindProperty("battleManager");
+        team.enumValueIndex = (int)BattleTeam.Enemy;
+        healthReference.objectReferenceValue = health;
+        battleManagerReference.objectReferenceValue = Object.FindFirstObjectByType<BattleManager>(
+            FindObjectsInactive.Include
+        );
+        serialized.ApplyModifiedProperties();
+        EditorUtility.SetDirty(participant);
     }
 
     private static void ConfigureBattleHud(Scene scene, GameObject gundam)
