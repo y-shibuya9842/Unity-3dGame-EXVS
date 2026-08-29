@@ -24,6 +24,12 @@ public class MechHealth : MonoBehaviour
         currentHealth = Mathf.Max(1f, maxHealth);
     }
 
+    public void SetMaximumHealth(float value)
+    {
+        maxHealth = Mathf.Max(1f, value);
+        currentHealth = Mathf.Min(currentHealth, maxHealth);
+    }
+
     public bool TakeDamage(float damage)
     {
         if (isDestroyed || damage <= 0f)

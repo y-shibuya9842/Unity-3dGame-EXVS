@@ -24,6 +24,11 @@ public class BattleParticipant : MonoBehaviour
     public bool IsAvailable => isActiveAndEnabled && (health == null || !health.IsDestroyed);
     public static IReadOnlyList<BattleParticipant> AllParticipants => participants;
 
+    public void SetUnitCost(int value)
+    {
+        unitCost = Mathf.Max(1, value);
+    }
+
     private void Awake()
     {
         if (health == null)

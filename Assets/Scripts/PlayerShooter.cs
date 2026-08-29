@@ -64,6 +64,11 @@ public class PlayerShooter : MonoBehaviour
         target = newTarget;
     }
 
+    public void SetWeaponDefinition(RangedWeaponDefinition definition)
+    {
+        weaponDefinition = definition;
+    }
+
     public bool TryShoot()
     {
         if (!CanShoot())

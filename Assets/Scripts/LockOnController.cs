@@ -37,6 +37,11 @@ public class LockOnController : MonoBehaviour
     public event Action<Transform> OnTargetChanged;
     public event Action<LockState> OnLockStateChanged;
 
+    public void SetRedLockDistance(float value)
+    {
+        redLockDistance = Mathf.Max(0f, value);
+    }
+
     private void Start()
     {
         if (playerParticipant == null && player != null)

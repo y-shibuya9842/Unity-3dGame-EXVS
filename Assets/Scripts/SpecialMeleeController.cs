@@ -43,6 +43,11 @@ public class SpecialMeleeController : MonoBehaviour
     public event Action<MechHealth> OnRushHit;
     public event Action OnRushEnded;
 
+    public void SetWeaponDefinition(MeleeWeaponDefinition definition)
+    {
+        weaponDefinition = definition;
+    }
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();

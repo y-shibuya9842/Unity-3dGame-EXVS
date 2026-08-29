@@ -60,6 +60,11 @@ public class MeleeAttackController : MonoBehaviour
     public event Action<MechHealth> OnAttackHit;
     public event Action OnAttackEnded;
 
+    public void SetWeaponDefinition(MeleeWeaponDefinition definition)
+    {
+        weaponDefinition = definition;
+    }
+
     private void Awake()
     {
         if (movementController == null)

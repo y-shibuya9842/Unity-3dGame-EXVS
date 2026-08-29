@@ -37,6 +37,11 @@ public class SubWeaponController : MonoBehaviour
 
     public event Action<int, int> OnAmmoChanged;
 
+    public void SetWeaponDefinition(RangedWeaponDefinition definition)
+    {
+        weaponDefinition = definition;
+    }
+
     private void Awake()
     {
         if (movementController == null)

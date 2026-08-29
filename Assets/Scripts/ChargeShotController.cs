@@ -29,6 +29,11 @@ public class ChargeShotController : MonoBehaviour
     public event Action<float> OnChargeChanged;
     public event Action OnChargeCompleted;
 
+    public void SetWeaponDefinition(RangedWeaponDefinition definition)
+    {
+        weaponDefinition = definition;
+    }
+
     private void Awake()
     {
         if (mainShooter == null)

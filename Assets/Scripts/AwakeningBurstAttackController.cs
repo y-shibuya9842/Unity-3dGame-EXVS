@@ -35,6 +35,11 @@ public class AwakeningBurstAttackController : MonoBehaviour
     public event Action OnBurstAttackFired;
     public event Action OnBurstAttackEnded;
 
+    public void SetWeaponDefinition(RangedWeaponDefinition definition)
+    {
+        weaponDefinition = definition;
+    }
+
     private void Awake()
     {
         if (awakeningController == null)
