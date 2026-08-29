@@ -33,6 +33,7 @@ public class PlayerShooter : MonoBehaviour
 
     public int CurrentAmmo => currentAmmo;
     public int MaxAmmo => maxAmmo;
+    public KeyCode ShootKey => shootKey;
 
     public event Action<int, int> OnAmmoChanged;
 
