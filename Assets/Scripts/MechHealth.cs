@@ -64,7 +64,19 @@ public class MechHealth : MonoBehaviour
     public void ResetHealth(float healthRatio)
     {
         isDestroyed = false;
-        currentHealth = Mathf.Max(1f, maxHealth * Mathf.Clamp01(healthRatio));
+        float clampedRatio = Mathf.Clamp01(healthRatio);
+
+        if (clampedRatio >= 1f)
+        {
+            currentHealth = maxHealth;
+        }
+        else
+        {
+            // コストオーバー時は割合計算後の耐久値を10単位で切り捨てる。
+            float reducedHealth = Mathf.Floor(maxHealth * clampedRatio / 10f) * 10f;
+            currentHealth = Mathf.Max(1f, reducedHealth);
+        }
+
         gameObject.SetActive(true);
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
