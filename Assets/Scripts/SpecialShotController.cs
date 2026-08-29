@@ -15,6 +15,9 @@ public class SpecialShotController : MonoBehaviour
     [SerializeField] private LockOnController lockOnController;
     [SerializeField] private Animator animator;
 
+    [Header("Weapon Data")]
+    [SerializeField] private RangedWeaponDefinition weaponDefinition;
+
     [Header("Special Shot")]
     [SerializeField] private float startupTime = 0.35f;
     [SerializeField] private float totalActionLock = 0.9f;
@@ -36,7 +39,7 @@ public class SpecialShotController : MonoBehaviour
     private int targetGuidanceCutVersion;
 
     public int CurrentAmmo => currentAmmo;
-    public int MaxAmmo => maxAmmo;
+    public int MaxAmmo => GetMaxAmmo();
 
     public event Action<int, int> OnAmmoChanged;
 
@@ -49,8 +52,8 @@ public class SpecialShotController : MonoBehaviour
             movementController = GetComponent<PlayerMechController>();
         }
 
-        currentAmmo = maxAmmo;
-        ammoRecoveryTimer = ammoRecoveryTime;
+        currentAmmo = GetMaxAmmo();
+        ammoRecoveryTimer = GetReloadTime();
     }
 
     private void OnEnable()
@@ -79,10 +82,10 @@ public class SpecialShotController : MonoBehaviour
         }
 
         SetCurrentAmmo(currentAmmo - 1);
-        ammoRecoveryTimer = ammoRecoveryTime;
-        cooldownTimer = useCooldown;
+        ammoRecoveryTimer = GetReloadTime();
+        cooldownTimer = GetCooldown();
         movementController?.ClearStepInputBuffer();
-        movementController?.ApplyActionLock(totalActionLock, true);
+        movementController?.ApplyActionLock(GetActionLockDuration(), true);
         FaceCurrentTarget();
         CaptureTargetingState();
 
@@ -97,7 +100,7 @@ public class SpecialShotController : MonoBehaviour
 
     private bool CanUse()
     {
-        return projectilePrefab != null
+        return GetProjectilePrefab() != null
             && currentAmmo > 0
             && cooldownTimer <= 0f
             && shotCoroutine == null
@@ -106,9 +109,11 @@ public class SpecialShotController : MonoBehaviour
 
     private IEnumerator FireAfterStartup()
     {
-        if (startupTime > 0f)
+        float activeStartupTime = GetStartupTime();
+
+        if (activeStartupTime > 0f)
         {
-            yield return new WaitForSeconds(startupTime);
+            yield return new WaitForSeconds(activeStartupTime);
         }
 
         FireProjectile();
@@ -124,7 +129,7 @@ public class SpecialShotController : MonoBehaviour
             ? spawnPoint.forward
             : GetShootDirection(spawnPoint, preparedTarget);
         HomingProjectile projectile = Instantiate(
-            projectilePrefab,
+            GetProjectilePrefab(),
             spawnPoint.position,
             Quaternion.LookRotation(shootDirection, Vector3.up)
         );
@@ -191,7 +196,9 @@ public class SpecialShotController : MonoBehaviour
 
     private void ApplyRecoil()
     {
-        if (rb == null || recoilSpeed <= 0f)
+        float activeRecoilSpeed = GetRecoilSpeed();
+
+        if (rb == null || activeRecoilSpeed <= 0f)
         {
             return;
         }
@@ -200,9 +207,9 @@ public class SpecialShotController : MonoBehaviour
         Vector3 recoilDirection = -Vector3.ProjectOnPlane(root.forward, Vector3.up).normalized;
         Vector3 velocity = rb.linearVelocity;
         rb.linearVelocity = new Vector3(
-            recoilDirection.x * recoilSpeed,
+            recoilDirection.x * activeRecoilSpeed,
             velocity.y,
-            recoilDirection.z * recoilSpeed
+            recoilDirection.z * activeRecoilSpeed
         );
     }
 
@@ -224,7 +231,7 @@ public class SpecialShotController : MonoBehaviour
             cooldownTimer -= Time.deltaTime;
         }
 
-        if (currentAmmo >= maxAmmo)
+        if (currentAmmo >= GetMaxAmmo())
         {
             return;
         }
@@ -233,14 +240,18 @@ public class SpecialShotController : MonoBehaviour
 
         if (ammoRecoveryTimer <= 0f)
         {
-            SetCurrentAmmo(currentAmmo + 1);
-            ammoRecoveryTimer = ammoRecoveryTime;
+            int reloadedAmmo = weaponDefinition != null
+                ? weaponDefinition.GetReloadedAmmo(currentAmmo)
+                : currentAmmo + 1;
+            SetCurrentAmmo(reloadedAmmo);
+            ammoRecoveryTimer = GetReloadTime();
         }
     }
 
     private void SetCurrentAmmo(int value)
     {
-        int nextAmmo = Mathf.Clamp(value, 0, maxAmmo);
+        int maximum = GetMaxAmmo();
+        int nextAmmo = Mathf.Clamp(value, 0, maximum);
 
         if (nextAmmo == currentAmmo)
         {
@@ -248,7 +259,46 @@ public class SpecialShotController : MonoBehaviour
         }
 
         currentAmmo = nextAmmo;
-        OnAmmoChanged?.Invoke(currentAmmo, maxAmmo);
+        OnAmmoChanged?.Invoke(currentAmmo, maximum);
+    }
+
+    private HomingProjectile GetProjectilePrefab()
+    {
+        return weaponDefinition != null && weaponDefinition.ProjectilePrefab != null
+            ? weaponDefinition.ProjectilePrefab
+            : projectilePrefab;
+    }
+
+    private int GetMaxAmmo()
+    {
+        return weaponDefinition != null ? weaponDefinition.MaxAmmo : Mathf.Max(1, maxAmmo);
+    }
+
+    private float GetReloadTime()
+    {
+        return weaponDefinition != null ? weaponDefinition.ReloadTime : ammoRecoveryTime;
+    }
+
+    private float GetCooldown()
+    {
+        return weaponDefinition != null ? weaponDefinition.Cooldown : useCooldown;
+    }
+
+    private float GetActionLockDuration()
+    {
+        return weaponDefinition != null
+            ? weaponDefinition.ActionLockDuration
+            : totalActionLock;
+    }
+
+    private float GetStartupTime()
+    {
+        return weaponDefinition != null ? weaponDefinition.StartupTime : startupTime;
+    }
+
+    private float GetRecoilSpeed()
+    {
+        return weaponDefinition != null ? weaponDefinition.RecoilSpeed : recoilSpeed;
     }
 
     private void OnDisable()

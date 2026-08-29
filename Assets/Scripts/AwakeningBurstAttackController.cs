@@ -15,6 +15,9 @@ public class AwakeningBurstAttackController : MonoBehaviour
     [SerializeField] private HomingProjectile projectilePrefab;
     [SerializeField] private Animator animator;
 
+    [Header("Weapon Data")]
+    [SerializeField] private RangedWeaponDefinition weaponDefinition;
+
     [Header("Burst Attack")]
     [SerializeField] private float startupTime = 0.75f;
     [SerializeField] private float totalActionLock = 1.5f;
@@ -68,7 +71,7 @@ public class AwakeningBurstAttackController : MonoBehaviour
     public bool TryUse()
     {
         if (!CanUse
-            || projectilePrefab == null
+            || GetProjectilePrefab() == null
             || (movementController != null && movementController.IsActionLocked()))
         {
             return false;
@@ -82,7 +85,7 @@ public class AwakeningBurstAttackController : MonoBehaviour
     private IEnumerator AttackRoutine()
     {
         movementController?.ClearStepInputBuffer();
-        movementController?.ApplyActionLock(totalActionLock, false);
+        movementController?.ApplyActionLock(GetActionLockDuration(), false);
         FaceTarget();
         CaptureTargetingState();
 
@@ -93,15 +96,20 @@ public class AwakeningBurstAttackController : MonoBehaviour
 
         OnBurstAttackStarted?.Invoke();
 
-        if (startupTime > 0f)
+        float activeStartupTime = GetStartupTime();
+
+        if (activeStartupTime > 0f)
         {
-            yield return new WaitForSeconds(startupTime);
+            yield return new WaitForSeconds(activeStartupTime);
         }
 
         FireProjectile();
         OnBurstAttackFired?.Invoke();
 
-        float remainingLock = Mathf.Max(0f, totalActionLock - startupTime);
+        float remainingLock = Mathf.Max(
+            0f,
+            GetActionLockDuration() - activeStartupTime
+        );
 
         if (remainingLock > 0f)
         {
@@ -128,7 +136,7 @@ public class AwakeningBurstAttackController : MonoBehaviour
 
         direction.Normalize();
         HomingProjectile projectile = Instantiate(
-            projectilePrefab,
+            GetProjectilePrefab(),
             spawnPoint.position,
             Quaternion.LookRotation(direction, Vector3.up)
         );
@@ -140,6 +148,25 @@ public class AwakeningBurstAttackController : MonoBehaviour
             transform,
             enableHoming && !guidanceWasCut
         );
+    }
+
+    private HomingProjectile GetProjectilePrefab()
+    {
+        return weaponDefinition != null && weaponDefinition.ProjectilePrefab != null
+            ? weaponDefinition.ProjectilePrefab
+            : projectilePrefab;
+    }
+
+    private float GetStartupTime()
+    {
+        return weaponDefinition != null ? weaponDefinition.StartupTime : startupTime;
+    }
+
+    private float GetActionLockDuration()
+    {
+        return weaponDefinition != null
+            ? weaponDefinition.ActionLockDuration
+            : totalActionLock;
     }
 
     private void CaptureTargetingState()

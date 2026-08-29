@@ -13,6 +13,9 @@ public class SubWeaponController : MonoBehaviour
     [SerializeField] private PlayerMechController movementController;
     [SerializeField] private LockOnController lockOnController;
 
+    [Header("Weapon Data")]
+    [SerializeField] private RangedWeaponDefinition weaponDefinition;
+
     [Header("Volley")]
     [SerializeField] private int projectileCount = 2;
     [SerializeField] private float projectileInterval = 0.08f;
@@ -33,7 +36,7 @@ public class SubWeaponController : MonoBehaviour
     private int targetGuidanceCutVersion;
 
     public int CurrentAmmo => currentAmmo;
-    public int MaxAmmo => maxAmmo;
+    public int MaxAmmo => GetMaxAmmo();
 
     public event Action<int, int> OnAmmoChanged;
 
@@ -44,8 +47,8 @@ public class SubWeaponController : MonoBehaviour
             movementController = GetComponent<PlayerMechController>();
         }
 
-        currentAmmo = maxAmmo;
-        ammoRecoveryTimer = ammoRecoveryTime;
+        currentAmmo = GetMaxAmmo();
+        ammoRecoveryTimer = GetReloadTime();
     }
 
     private void Update()
@@ -66,10 +69,10 @@ public class SubWeaponController : MonoBehaviour
         }
 
         SetCurrentAmmo(currentAmmo - 1);
-        ammoRecoveryTimer = ammoRecoveryTime;
-        cooldownTimer = useCooldown;
+        ammoRecoveryTimer = GetReloadTime();
+        cooldownTimer = GetCooldown();
         movementController?.ClearStepInputBuffer();
-        movementController?.ApplyActionLock(actionLockDuration, true);
+        movementController?.ApplyActionLock(GetActionLockDuration(), true);
         CaptureTargetingState();
         volleyCoroutine = StartCoroutine(FireVolley());
         return true;
@@ -77,7 +80,7 @@ public class SubWeaponController : MonoBehaviour
 
     private bool CanUse()
     {
-        return projectilePrefab != null
+        return GetProjectilePrefab() != null
             && currentAmmo > 0
             && cooldownTimer <= 0f
             && volleyCoroutine == null
@@ -86,15 +89,17 @@ public class SubWeaponController : MonoBehaviour
 
     private IEnumerator FireVolley()
     {
-        int count = Mathf.Max(1, projectileCount);
+        int count = GetProjectileCount();
 
         for (int i = 0; i < count; i++)
         {
             FireProjectile(i, count);
 
-            if (i < count - 1 && projectileInterval > 0f)
+            float interval = GetProjectileInterval();
+
+            if (i < count - 1 && interval > 0f)
             {
-                yield return new WaitForSeconds(projectileInterval);
+                yield return new WaitForSeconds(interval);
             }
         }
 
@@ -110,11 +115,15 @@ public class SubWeaponController : MonoBehaviour
             : GetBaseDirection(spawnPoint, volleyTarget);
         float angle = count <= 1
             ? 0f
-            : Mathf.Lerp(-spreadAngle * 0.5f, spreadAngle * 0.5f, (float)index / (count - 1));
+            : Mathf.Lerp(
+                -GetSpreadAngle() * 0.5f,
+                GetSpreadAngle() * 0.5f,
+                (float)index / (count - 1)
+            );
         Vector3 shootDirection = Quaternion.AngleAxis(angle, Vector3.up) * baseDirection;
 
         HomingProjectile projectile = Instantiate(
-            projectilePrefab,
+            GetProjectilePrefab(),
             spawnPoint.position,
             Quaternion.LookRotation(shootDirection, Vector3.up)
         );
@@ -167,7 +176,7 @@ public class SubWeaponController : MonoBehaviour
             cooldownTimer -= Time.deltaTime;
         }
 
-        if (currentAmmo >= maxAmmo)
+        if (currentAmmo >= GetMaxAmmo())
         {
             return;
         }
@@ -176,14 +185,18 @@ public class SubWeaponController : MonoBehaviour
 
         if (ammoRecoveryTimer <= 0f)
         {
-            SetCurrentAmmo(currentAmmo + 1);
-            ammoRecoveryTimer = ammoRecoveryTime;
+            int reloadedAmmo = weaponDefinition != null
+                ? weaponDefinition.GetReloadedAmmo(currentAmmo)
+                : currentAmmo + 1;
+            SetCurrentAmmo(reloadedAmmo);
+            ammoRecoveryTimer = GetReloadTime();
         }
     }
 
     private void SetCurrentAmmo(int value)
     {
-        int nextAmmo = Mathf.Clamp(value, 0, maxAmmo);
+        int maximum = GetMaxAmmo();
+        int nextAmmo = Mathf.Clamp(value, 0, maximum);
 
         if (nextAmmo == currentAmmo)
         {
@@ -191,7 +204,55 @@ public class SubWeaponController : MonoBehaviour
         }
 
         currentAmmo = nextAmmo;
-        OnAmmoChanged?.Invoke(currentAmmo, maxAmmo);
+        OnAmmoChanged?.Invoke(currentAmmo, maximum);
+    }
+
+    private HomingProjectile GetProjectilePrefab()
+    {
+        return weaponDefinition != null && weaponDefinition.ProjectilePrefab != null
+            ? weaponDefinition.ProjectilePrefab
+            : projectilePrefab;
+    }
+
+    private int GetMaxAmmo()
+    {
+        return weaponDefinition != null ? weaponDefinition.MaxAmmo : Mathf.Max(1, maxAmmo);
+    }
+
+    private float GetReloadTime()
+    {
+        return weaponDefinition != null ? weaponDefinition.ReloadTime : ammoRecoveryTime;
+    }
+
+    private float GetCooldown()
+    {
+        return weaponDefinition != null ? weaponDefinition.Cooldown : useCooldown;
+    }
+
+    private float GetActionLockDuration()
+    {
+        return weaponDefinition != null
+            ? weaponDefinition.ActionLockDuration
+            : actionLockDuration;
+    }
+
+    private int GetProjectileCount()
+    {
+        return weaponDefinition != null
+            ? weaponDefinition.ProjectileCount
+            : Mathf.Max(1, projectileCount);
+    }
+
+    private float GetProjectileInterval()
+    {
+        return weaponDefinition != null
+            ? weaponDefinition.ProjectileInterval
+            : projectileInterval;
+    }
+
+    private float GetSpreadAngle()
+    {
+        return weaponDefinition != null ? weaponDefinition.SpreadAngle : spreadAngle;
     }
 
     private void OnDisable()

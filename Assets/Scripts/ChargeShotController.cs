@@ -15,6 +15,9 @@ public class ChargeShotController : MonoBehaviour
     [SerializeField] private PlayerMechController movementController;
     [SerializeField] private LockOnController lockOnController;
 
+    [Header("Weapon Data")]
+    [SerializeField] private RangedWeaponDefinition weaponDefinition;
+
     [Header("Charge Shot")]
     [SerializeField] private float chargeTime = 2f;
     [SerializeField] private float actionLockDuration = 0.65f;
@@ -22,8 +25,8 @@ public class ChargeShotController : MonoBehaviour
     private float currentChargeTime;
     private bool isCharging;
 
-    public float ChargeRate => chargeTime > 0f
-        ? Mathf.Clamp01(currentChargeTime / chargeTime)
+    public float ChargeRate => GetChargeTime() > 0f
+        ? Mathf.Clamp01(currentChargeTime / GetChargeTime())
         : 1f;
     public bool IsFullyCharged => isCharging && ChargeRate >= 1f;
 
@@ -83,7 +86,7 @@ public class ChargeShotController : MonoBehaviour
     private void UpdateCharge()
     {
         bool wasFullyCharged = IsFullyCharged;
-        currentChargeTime = Mathf.Min(currentChargeTime + Time.deltaTime, chargeTime);
+        currentChargeTime = Mathf.Min(currentChargeTime + Time.deltaTime, GetChargeTime());
         OnChargeChanged?.Invoke(ChargeRate);
 
         if (!wasFullyCharged && IsFullyCharged)
@@ -114,7 +117,9 @@ public class ChargeShotController : MonoBehaviour
 
     private bool TryFireChargedShot()
     {
-        if (chargedProjectilePrefab == null
+        HomingProjectile activeProjectilePrefab = GetProjectilePrefab();
+
+        if (activeProjectilePrefab == null
             || (movementController != null && movementController.IsActionLocked()))
         {
             return false;
@@ -124,7 +129,7 @@ public class ChargeShotController : MonoBehaviour
         Transform target = lockOnController != null ? lockOnController.CurrentTarget : null;
         Vector3 shootDirection = GetShootDirection(spawnPoint, target);
         HomingProjectile projectile = Instantiate(
-            chargedProjectilePrefab,
+            activeProjectilePrefab,
             spawnPoint.position,
             Quaternion.LookRotation(shootDirection, Vector3.up)
         );
@@ -133,8 +138,27 @@ public class ChargeShotController : MonoBehaviour
         projectile.Launch(target, shootDirection, transform, enableHoming);
 
         movementController?.ClearStepInputBuffer();
-        movementController?.ApplyActionLock(actionLockDuration, true);
+        movementController?.ApplyActionLock(GetActionLockDuration(), true);
         return true;
+    }
+
+    private HomingProjectile GetProjectilePrefab()
+    {
+        return weaponDefinition != null && weaponDefinition.ProjectilePrefab != null
+            ? weaponDefinition.ProjectilePrefab
+            : chargedProjectilePrefab;
+    }
+
+    private float GetChargeTime()
+    {
+        return weaponDefinition != null ? weaponDefinition.ChargeTime : chargeTime;
+    }
+
+    private float GetActionLockDuration()
+    {
+        return weaponDefinition != null
+            ? weaponDefinition.ActionLockDuration
+            : actionLockDuration;
     }
 
     private static Vector3 GetShootDirection(Transform spawnPoint, Transform target)
