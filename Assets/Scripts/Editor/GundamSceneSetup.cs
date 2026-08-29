@@ -11,6 +11,7 @@ public static class GundamSceneSetup
     static GundamSceneSetup()
     {
         EditorApplication.delayCall += SetupAutomaticallyIfNeeded;
+        EditorApplication.playModeStateChanged += HandlePlayModeStateChanged;
     }
 
     [MenuItem("EXVS/機体/現在のシーンをガンダム用に設定")]
@@ -68,14 +69,30 @@ public static class GundamSceneSetup
 
         if (!scene.IsValid()
             || !scene.isLoaded
-            || string.IsNullOrEmpty(scene.path)
-            || FindInScene(scene, "Gundam") != null
-            || FindInScene(scene, "PlayerMech") == null)
+            || string.IsNullOrEmpty(scene.path))
+        {
+            return;
+        }
+
+        GameObject gundam = FindInScene(scene, "Gundam");
+        bool cameraSetupIsMissing = gundam != null
+            && FindComponentInScene<VersusLockOnCamera>(scene) == null;
+
+        if ((gundam != null && !cameraSetupIsMissing)
+            || (gundam == null && FindInScene(scene, "PlayerMech") == null))
         {
             return;
         }
 
         SetupCurrentScene();
+    }
+
+    private static void HandlePlayModeStateChanged(PlayModeStateChange state)
+    {
+        if (state == PlayModeStateChange.EnteredEditMode)
+        {
+            EditorApplication.delayCall += SetupAutomaticallyIfNeeded;
+        }
     }
 
     private static void SetSpawnTransform(Transform gundam, GameObject playerMech)
@@ -117,8 +134,15 @@ public static class GundamSceneSetup
 
         if (camera == null)
         {
-            Debug.LogWarning("Versus Lock On Cameraが見つからないため、カメラ参照は設定していません。");
-            return;
+            Camera mainCamera = FindComponentInScene<Camera>(scene);
+
+            if (mainCamera == null)
+            {
+                Debug.LogWarning("Main Cameraが見つからないため、カメラ参照は設定していません。");
+                return;
+            }
+
+            camera = Undo.AddComponent<VersusLockOnCamera>(mainCamera.gameObject);
         }
 
         Undo.RecordObject(camera, "カメラをガンダムへ設定");

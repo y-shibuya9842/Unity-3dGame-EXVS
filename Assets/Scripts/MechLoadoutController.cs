@@ -13,6 +13,11 @@ public class MechLoadoutController : MonoBehaviour
         ApplyDefinition();
     }
 
+    private void Start()
+    {
+        ConnectPlayerCamera();
+    }
+
     public void ApplyDefinition()
     {
         if (definition == null)
@@ -39,5 +44,27 @@ public class MechLoadoutController : MonoBehaviour
         {
             transformation.enabled = definition.SupportsTransformation;
         }
+    }
+
+    private void ConnectPlayerCamera()
+    {
+        BattleParticipant participant = GetComponent<BattleParticipant>();
+
+        if (participant == null || participant.Team != BattleTeam.Player || Camera.main == null)
+        {
+            return;
+        }
+
+        VersusLockOnCamera camera = Camera.main.GetComponent<VersusLockOnCamera>();
+
+        if (camera == null)
+        {
+            camera = Camera.main.gameObject.AddComponent<VersusLockOnCamera>();
+        }
+
+        LockOnController lockOn = GetComponent<LockOnController>();
+        camera.SetAttachTarget(transform);
+        camera.ChangeLookTarget(lockOn != null ? lockOn.CurrentTarget : null);
+        lockOn?.SetLockOnCamera(camera);
     }
 }

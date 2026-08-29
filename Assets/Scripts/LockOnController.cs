@@ -42,6 +42,16 @@ public class LockOnController : MonoBehaviour
         redLockDistance = Mathf.Max(0f, value);
     }
 
+    public void SetLockOnCamera(VersusLockOnCamera camera)
+    {
+        lockOnCamera = camera;
+
+        if (lockOnCamera != null)
+        {
+            lockOnCamera.ChangeLookTarget(currentTarget);
+        }
+    }
+
     private void Start()
     {
         if (playerParticipant == null && player != null)
