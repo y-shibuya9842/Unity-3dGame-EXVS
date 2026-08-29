@@ -8,6 +8,10 @@ public class BattleHudController : MonoBehaviour
     [SerializeField] private MechHealth playerHealth;
     [SerializeField] private PlayerMechController playerMovement;
     [SerializeField] private PlayerShooter playerShooter;
+    [SerializeField] private SubWeaponController subWeapon;
+    [SerializeField] private SpecialShotController specialShot;
+    [SerializeField] private ChargeShotController chargeShot;
+    [SerializeField] private AwakeningController awakeningController;
     [SerializeField] private BattleManager battleManager;
 
     [Header("Health UI")]
@@ -19,6 +23,12 @@ public class BattleHudController : MonoBehaviour
 
     [Header("Ammo UI")]
     [SerializeField] private TMP_Text ammoText;
+    [SerializeField] private TMP_Text subAmmoText;
+    [SerializeField] private TMP_Text specialShotAmmoText;
+
+    [Header("Charge And Awakening UI")]
+    [SerializeField] private Slider chargeGauge;
+    [SerializeField] private Slider awakeningGauge;
 
     [Header("Battle UI")]
     [SerializeField] private TMP_Text timerText;
@@ -40,6 +50,26 @@ public class BattleHudController : MonoBehaviour
         if (playerShooter != null)
         {
             playerShooter.OnAmmoChanged += UpdateAmmo;
+        }
+
+        if (subWeapon != null)
+        {
+            subWeapon.OnAmmoChanged += UpdateSubAmmo;
+        }
+
+        if (specialShot != null)
+        {
+            specialShot.OnAmmoChanged += UpdateSpecialShotAmmo;
+        }
+
+        if (chargeShot != null)
+        {
+            chargeShot.OnChargeChanged += UpdateCharge;
+        }
+
+        if (awakeningController != null)
+        {
+            awakeningController.OnGaugeChanged += UpdateAwakening;
         }
 
         if (battleManager != null)
@@ -66,6 +96,29 @@ public class BattleHudController : MonoBehaviour
             UpdateAmmo(playerShooter.CurrentAmmo, playerShooter.MaxAmmo);
         }
 
+        if (subWeapon != null)
+        {
+            UpdateSubAmmo(subWeapon.CurrentAmmo, subWeapon.MaxAmmo);
+        }
+
+        if (specialShot != null)
+        {
+            UpdateSpecialShotAmmo(specialShot.CurrentAmmo, specialShot.MaxAmmo);
+        }
+
+        if (chargeShot != null)
+        {
+            UpdateCharge(chargeShot.ChargeRate);
+        }
+
+        if (awakeningController != null)
+        {
+            UpdateAwakening(
+                awakeningController.CurrentGauge,
+                awakeningController.MaxGauge
+            );
+        }
+
         if (battleManager != null)
         {
             UpdateTime(battleManager.RemainingTime);
@@ -89,6 +142,26 @@ public class BattleHudController : MonoBehaviour
         if (playerShooter != null)
         {
             playerShooter.OnAmmoChanged -= UpdateAmmo;
+        }
+
+        if (subWeapon != null)
+        {
+            subWeapon.OnAmmoChanged -= UpdateSubAmmo;
+        }
+
+        if (specialShot != null)
+        {
+            specialShot.OnAmmoChanged -= UpdateSpecialShotAmmo;
+        }
+
+        if (chargeShot != null)
+        {
+            chargeShot.OnChargeChanged -= UpdateCharge;
+        }
+
+        if (awakeningController != null)
+        {
+            awakeningController.OnGaugeChanged -= UpdateAwakening;
         }
 
         if (battleManager != null)
@@ -119,6 +192,32 @@ public class BattleHudController : MonoBehaviour
         {
             ammoText.text = $"AMMO {current}/{maximum}";
         }
+    }
+
+    private void UpdateSubAmmo(int current, int maximum)
+    {
+        if (subAmmoText != null)
+        {
+            subAmmoText.text = $"SUB {current}/{maximum}";
+        }
+    }
+
+    private void UpdateSpecialShotAmmo(int current, int maximum)
+    {
+        if (specialShotAmmoText != null)
+        {
+            specialShotAmmoText.text = $"SPECIAL {current}/{maximum}";
+        }
+    }
+
+    private void UpdateCharge(float chargeRate)
+    {
+        UpdateGauge(chargeGauge, chargeRate, 1f);
+    }
+
+    private void UpdateAwakening(float current, float maximum)
+    {
+        UpdateGauge(awakeningGauge, current, maximum);
     }
 
     private void UpdateTime(float remainingTime)
