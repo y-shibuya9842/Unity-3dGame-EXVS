@@ -8,6 +8,7 @@ public class BattleHudController : MonoBehaviour
     [SerializeField] private MechHealth playerHealth;
     [SerializeField] private PlayerMechController playerMovement;
     [SerializeField] private PlayerShooter playerShooter;
+    [SerializeField] private BattleManager battleManager;
 
     [Header("Health UI")]
     [SerializeField] private TMP_Text healthText;
@@ -18,6 +19,11 @@ public class BattleHudController : MonoBehaviour
 
     [Header("Ammo UI")]
     [SerializeField] private TMP_Text ammoText;
+
+    [Header("Battle UI")]
+    [SerializeField] private TMP_Text timerText;
+    [SerializeField] private TMP_Text playerCostText;
+    [SerializeField] private TMP_Text enemyCostText;
 
     private void OnEnable()
     {
@@ -34,6 +40,12 @@ public class BattleHudController : MonoBehaviour
         if (playerShooter != null)
         {
             playerShooter.OnAmmoChanged += UpdateAmmo;
+        }
+
+        if (battleManager != null)
+        {
+            battleManager.OnTimeChanged += UpdateTime;
+            battleManager.OnTeamCostChanged += UpdateTeamCost;
         }
     }
 
@@ -53,6 +65,13 @@ public class BattleHudController : MonoBehaviour
         {
             UpdateAmmo(playerShooter.CurrentAmmo, playerShooter.MaxAmmo);
         }
+
+        if (battleManager != null)
+        {
+            UpdateTime(battleManager.RemainingTime);
+            UpdateTeamCost(BattleTeam.Player, battleManager.PlayerTeamCost);
+            UpdateTeamCost(BattleTeam.Enemy, battleManager.EnemyTeamCost);
+        }
     }
 
     private void OnDisable()
@@ -70,6 +89,12 @@ public class BattleHudController : MonoBehaviour
         if (playerShooter != null)
         {
             playerShooter.OnAmmoChanged -= UpdateAmmo;
+        }
+
+        if (battleManager != null)
+        {
+            battleManager.OnTimeChanged -= UpdateTime;
+            battleManager.OnTeamCostChanged -= UpdateTeamCost;
         }
     }
 
@@ -93,6 +118,24 @@ public class BattleHudController : MonoBehaviour
         if (ammoText != null)
         {
             ammoText.text = $"AMMO {current}/{maximum}";
+        }
+    }
+
+    private void UpdateTime(float remainingTime)
+    {
+        if (timerText != null)
+        {
+            timerText.text = Mathf.CeilToInt(remainingTime).ToString();
+        }
+    }
+
+    private void UpdateTeamCost(BattleTeam team, int remainingCost)
+    {
+        TMP_Text targetText = team == BattleTeam.Player ? playerCostText : enemyCostText;
+
+        if (targetText != null)
+        {
+            targetText.text = $"COST {remainingCost}";
         }
     }
 
