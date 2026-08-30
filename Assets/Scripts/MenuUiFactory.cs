@@ -1,19 +1,33 @@
+using System.IO;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
+using UnityEngine.TextCore.LowLevel;
 using UnityEngine.UI;
 
 public static class MenuUiFactory
 {
+    private static readonly string[] JapaneseFontFiles =
+    {
+        "YuGothM.ttc",
+        "meiryo.ttc",
+        "BIZ-UDGothicR.ttc",
+        "msgothic.ttc"
+    };
+
     public static readonly Color BackgroundColor = new Color(0.015f, 0.035f, 0.05f, 1f);
     public static readonly Color PanelColor = new Color(0.035f, 0.07f, 0.09f, 0.96f);
     public static readonly Color CyanColor = new Color(0.05f, 0.82f, 1f, 1f);
     public static readonly Color WhiteColor = new Color(0.94f, 0.98f, 1f, 1f);
     public static readonly Color MutedColor = new Color(0.5f, 0.65f, 0.7f, 1f);
 
+    private static TMP_FontAsset menuFontAsset;
+
     public static Canvas CreateCanvas(string objectName, int sortingOrder = 50)
     {
+        EnsureMenuCamera();
+
         GameObject canvasObject = new GameObject(
             objectName,
             typeof(RectTransform),
@@ -102,6 +116,7 @@ public static class MenuUiFactory
             size
         );
         TMP_Text text = rect.gameObject.AddComponent<TextMeshProUGUI>();
+        text.font = GetMenuFontAsset();
         text.text = value;
         text.fontSize = fontSize;
         text.fontStyle = fontStyle;
@@ -111,6 +126,62 @@ public static class MenuUiFactory
         text.overflowMode = TextOverflowModes.Ellipsis;
         text.raycastTarget = false;
         return text;
+    }
+
+    private static TMP_FontAsset GetMenuFontAsset()
+    {
+        if (menuFontAsset != null)
+        {
+            return menuFontAsset;
+        }
+
+        string fontDirectory = System.Environment.GetFolderPath(
+            System.Environment.SpecialFolder.Fonts
+        );
+
+        foreach (string fileName in JapaneseFontFiles)
+        {
+            string fontPath = Path.Combine(fontDirectory, fileName);
+
+            if (!File.Exists(fontPath))
+            {
+                continue;
+            }
+
+            menuFontAsset = TMP_FontAsset.CreateFontAsset(
+                fontPath,
+                0,
+                90,
+                9,
+                GlyphRenderMode.SDFAA,
+                1024,
+                1024
+            );
+
+            if (menuFontAsset != null)
+            {
+                menuFontAsset.name = "MenuJapaneseFontAsset";
+                return menuFontAsset;
+            }
+        }
+
+        return TMP_Settings.defaultFontAsset;
+    }
+
+    private static void EnsureMenuCamera()
+    {
+        if (Camera.main != null)
+        {
+            return;
+        }
+
+        GameObject cameraObject = new GameObject("MenuCamera", typeof(Camera));
+        cameraObject.tag = "MainCamera";
+
+        Camera camera = cameraObject.GetComponent<Camera>();
+        camera.clearFlags = CameraClearFlags.SolidColor;
+        camera.backgroundColor = BackgroundColor;
+        camera.cullingMask = 0;
     }
 
     public static Button CreateButton(

@@ -71,6 +71,8 @@ public class InputRebindingController : MonoBehaviour
     {
         displayedActions.Clear();
         displayedActions.AddRange((VersusInputAction[])Enum.GetValues(typeof(VersusInputAction)));
+        displayedActions.Remove(VersusInputAction.Guard);
+        displayedActions.Remove(VersusInputAction.BurstAttack);
 
         if (actionDropdown == null)
         {
@@ -226,7 +228,7 @@ public class InputRebindingController : MonoBehaviour
             case VersusInputAction.SpecialMelee: return "特殊格闘";
             case VersusInputAction.Guard: return "シールドガード";
             case VersusInputAction.Search: return "サーチ切り替え";
-            case VersusInputAction.Awakening: return "覚醒";
+            case VersusInputAction.Awakening: return "覚醒・覚醒技";
             case VersusInputAction.BurstAttack: return "覚醒技";
             case VersusInputAction.OpenInputSettings: return "操作設定を開く";
             case VersusInputAction.Retry: return "再戦";

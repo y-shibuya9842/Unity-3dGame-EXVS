@@ -27,6 +27,8 @@ public enum VersusInputAction
 public sealed class VersusInputManager : MonoBehaviour
 {
     private const string BindingOverridesKey = "VersusInputBindingOverrides";
+    private const string BindingDefaultsVersionKey = "VersusInputBindingDefaultsVersion";
+    private const int CurrentBindingDefaultsVersion = 2;
     private static VersusInputManager instance;
 
     private readonly Dictionary<VersusInputAction, InputAction> actions =
@@ -66,6 +68,7 @@ public sealed class VersusInputManager : MonoBehaviour
         instance = this;
         DontDestroyOnLoad(gameObject);
         BuildActions();
+        MigrateBindingDefaults();
         LoadBindingOverrides();
         inputAsset.Enable();
         SceneManager.sceneLoaded += HandleSceneLoaded;
@@ -265,20 +268,18 @@ public sealed class VersusInputManager : MonoBehaviour
             VersusInputAction.MainShot,
             "<Keyboard>/e",
             "<Mouse>/leftButton",
-            "<Gamepad>/buttonWest"
-        );
-        AddButton(VersusInputAction.Melee, "<Keyboard>/f", "<Gamepad>/buttonNorth");
-        AddButton(VersusInputAction.SubShot, "<Keyboard>/q", "<Gamepad>/rightShoulder");
-        AddButton(VersusInputAction.SpecialShot, "<Keyboard>/c", "<Gamepad>/leftTrigger");
-        AddButton(VersusInputAction.SpecialMelee, "<Keyboard>/v", "<Gamepad>/rightTrigger");
-        AddButton(
-            VersusInputAction.Guard,
-            "<Mouse>/rightButton",
             "<Gamepad>/leftShoulder"
         );
-        AddButton(VersusInputAction.Search, "<Keyboard>/tab", "<Gamepad>/buttonEast");
-        AddButton(VersusInputAction.Awakening, "<Keyboard>/r", "<Gamepad>/rightStickPress");
-        AddButton(VersusInputAction.BurstAttack, "<Keyboard>/t", "<Gamepad>/leftStickPress");
+        AddButton(VersusInputAction.Melee, "<Keyboard>/f", "<Gamepad>/rightShoulder");
+        AddButton(VersusInputAction.SubShot, "<Keyboard>/q", "<Gamepad>/buttonEast");
+        AddButton(VersusInputAction.SpecialShot, "<Keyboard>/c", "<Gamepad>/leftTrigger");
+        AddButton(VersusInputAction.SpecialMelee, "<Keyboard>/v", "<Gamepad>/rightTrigger");
+        // 列挙値は保存済み設定との互換性のため残すが、シールド専用ボタンは作らない。
+        AddAction(VersusInputAction.Guard, InputActionType.Button);
+        AddButton(VersusInputAction.Search, "<Keyboard>/tab", "<Gamepad>/buttonWest");
+        AddButton(VersusInputAction.Awakening, "<Keyboard>/r", "<Gamepad>/buttonNorth");
+        // 覚醒技は覚醒と同じ入力を参照するため、個別の割り当ては作らない。
+        AddAction(VersusInputAction.BurstAttack, InputActionType.Button);
         AddButton(
             VersusInputAction.OpenInputSettings,
             "<Keyboard>/f10",
@@ -307,6 +308,19 @@ public sealed class VersusInputManager : MonoBehaviour
     private void SaveBindingOverrides()
     {
         PlayerPrefs.SetString(BindingOverridesKey, inputAsset.SaveBindingOverridesAsJson());
+        PlayerPrefs.Save();
+    }
+
+    private static void MigrateBindingDefaults()
+    {
+        if (PlayerPrefs.GetInt(BindingDefaultsVersionKey, 0)
+            >= CurrentBindingDefaultsVersion)
+        {
+            return;
+        }
+
+        PlayerPrefs.DeleteKey(BindingOverridesKey);
+        PlayerPrefs.SetInt(BindingDefaultsVersionKey, CurrentBindingDefaultsVersion);
         PlayerPrefs.Save();
     }
 

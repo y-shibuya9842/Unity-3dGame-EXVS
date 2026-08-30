@@ -64,7 +64,8 @@ public class AwakeningBurstAttackController : MonoBehaviour
 
     private void Update()
     {
-        if (VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.BurstAttack))
+        if (VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.Awakening)
+            && (awakeningController == null || !awakeningController.StartedThisFrame))
         {
             TryUse();
         }

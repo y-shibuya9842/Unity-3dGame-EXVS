@@ -805,7 +805,7 @@ Transform:
   m_GameObject: {fileID: 552115167}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.534832, y: 0.678998, z: 7.416562}
+  m_LocalPosition: {x: -1.534832, y: -4.1, z: 7.416562}
   m_LocalScale: {x: 10, y: 1, z: 10}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1791,6 +1791,7 @@ MonoBehaviour:
   stepAcceleration: 90
   stepEndDeceleration: 14
   stepCooldown: 0.08
+  stepNeutralReturnTime: 0.06
   transformationController: {fileID: 0}
   maxBoost: 100
   boostDashDrainPerSecond: 28

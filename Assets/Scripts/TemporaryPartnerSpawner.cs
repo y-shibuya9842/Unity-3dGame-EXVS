@@ -19,6 +19,11 @@ public class TemporaryPartnerSpawner : MonoBehaviour
 
     private void Start()
     {
+        if (GetComponent<BattleRosterSpawner>() != null)
+        {
+            return;
+        }
+
         SpawnPartnerIfNeeded();
     }
 

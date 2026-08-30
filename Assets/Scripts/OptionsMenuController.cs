@@ -45,6 +45,8 @@ public class OptionsMenuController : MonoBehaviour
     {
         Time.timeScale = 1f;
         actions.AddRange((VersusInputAction[])Enum.GetValues(typeof(VersusInputAction)));
+        actions.Remove(VersusInputAction.Guard);
+        actions.Remove(VersusInputAction.BurstAttack);
         BuildMenu();
         RefreshSelection();
     }
@@ -302,7 +304,7 @@ public class OptionsMenuController : MonoBehaviour
             case VersusInputAction.SpecialMelee: return "特殊格闘";
             case VersusInputAction.Guard: return "シールドガード";
             case VersusInputAction.Search: return "サーチ切り替え・戻る";
-            case VersusInputAction.Awakening: return "覚醒";
+            case VersusInputAction.Awakening: return "覚醒・覚醒技";
             case VersusInputAction.BurstAttack: return "覚醒技";
             case VersusInputAction.OpenInputSettings: return "操作設定を開く";
             case VersusInputAction.Retry: return "決定・再戦";

@@ -3,24 +3,34 @@ using UnityEngine;
 
 public class ShieldGuard : MonoBehaviour
 {
-    [Header("Input")]
-    [SerializeField] private float leverInputWindow = 0.3f;
-    [SerializeField] private bool playerInputEnabled = true;
+    [Header("入力")]
+    [SerializeField, InspectorName("レバー入力受付時間")]
+    private float leverInputWindow = 0.3f;
+    [SerializeField, InspectorName("プレイヤー入力を使用")]
+    private bool playerInputEnabled = true;
 
-    [Header("Guard")]
-    [SerializeField, Range(1f, 180f)] private float guardAngle = 110f;
-    [SerializeField] private float boostDrainPerSecond = 20f;
-    [SerializeField] private float movementLockRefreshTime = 0.05f;
+    [Header("シールド")]
+    [SerializeField, Range(1f, 180f), InspectorName("防御角度")]
+    private float guardAngle = 110f;
+    [SerializeField, InspectorName("基本持続時間")]
+    private float baseGuardDuration = 0.45f;
+    [SerializeField, InspectorName("延長中のブースト消費量（毎秒）")]
+    private float boostDrainPerSecond = 20f;
+    [SerializeField, InspectorName("移動停止の更新間隔")]
+    private float movementLockRefreshTime = 0.05f;
 
-    [Header("References")]
-    [SerializeField] private PlayerMechController movementController;
-    [SerializeField] private GameObject guardVisual;
+    [Header("参照")]
+    [SerializeField, InspectorName("移動制御")]
+    private PlayerMechController movementController;
+    [SerializeField, InspectorName("シールド表示")]
+    private GameObject guardVisual;
 
     private bool isGuarding;
     private bool downInputArmed;
     private float downInputTime;
     private Vector2 previousMoveInput;
     private float automaticGuardTimer;
+    private float manualGuardTimer;
 
     public bool IsGuarding => isGuarding;
 
@@ -59,20 +69,16 @@ public class ShieldGuard : MonoBehaviour
 
         UpdateLeverInput();
 
-        if (VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.Guard))
-        {
-            StartGuard();
-        }
-
         if (!isGuarding)
         {
             return;
         }
 
-        bool keepGuarding = VersusInputManager.Instance.IsPressed(VersusInputAction.Guard)
-            || VersusInputManager.Instance.ReadMove().y > 0.5f;
+        manualGuardTimer -= Time.deltaTime;
+        bool baseGuardActive = manualGuardTimer > 0f;
+        bool extendingGuard = VersusInputManager.Instance.ReadMove().y > 0.5f;
 
-        if (!keepGuarding || movementController == null)
+        if ((!baseGuardActive && !extendingGuard) || movementController == null)
         {
             StopGuard();
             return;
@@ -80,7 +86,8 @@ public class ShieldGuard : MonoBehaviour
 
         movementController.ApplyActionLock(movementLockRefreshTime, false);
 
-        if (!movementController.TryConsumeBoost(boostDrainPerSecond * Time.deltaTime))
+        if (!baseGuardActive
+            && !movementController.TryConsumeBoost(boostDrainPerSecond * Time.deltaTime))
         {
             StopGuard();
         }
@@ -161,6 +168,7 @@ public class ShieldGuard : MonoBehaviour
         }
 
         isGuarding = true;
+        manualGuardTimer = Mathf.Max(0.01f, baseGuardDuration);
         movementController.ClearStepInputBuffer();
         SetGuardVisual(true);
         OnGuardStarted?.Invoke();
@@ -174,6 +182,7 @@ public class ShieldGuard : MonoBehaviour
         }
 
         isGuarding = false;
+        manualGuardTimer = 0f;
         SetGuardVisual(false);
         OnGuardEnded?.Invoke();
     }
@@ -189,6 +198,7 @@ public class ShieldGuard : MonoBehaviour
     private void OnDisable()
     {
         automaticGuardTimer = 0f;
+        manualGuardTimer = 0f;
         isGuarding = false;
         SetGuardVisual(false);
     }
@@ -196,6 +206,7 @@ public class ShieldGuard : MonoBehaviour
     private void OnValidate()
     {
         leverInputWindow = Mathf.Max(0.01f, leverInputWindow);
+        baseGuardDuration = Mathf.Max(0.01f, baseGuardDuration);
         boostDrainPerSecond = Mathf.Max(0f, boostDrainPerSecond);
         movementLockRefreshTime = Mathf.Max(0.01f, movementLockRefreshTime);
     }

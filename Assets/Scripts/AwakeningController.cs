@@ -34,10 +34,12 @@ public class AwakeningController : MonoBehaviour
 
     private float currentGauge;
     private bool isAwakened;
+    private int awakeningStartedFrame = -1;
 
     public float CurrentGauge => currentGauge;
     public float MaxGauge => maxGauge;
     public bool IsAwakened => isAwakened;
+    public bool StartedThisFrame => awakeningStartedFrame == Time.frameCount;
 
     public event Action<float, float> OnGaugeChanged;
     public event Action OnAwakeningStarted;
@@ -102,6 +104,7 @@ public class AwakeningController : MonoBehaviour
     private IEnumerator AwakeningRoutine()
     {
         isAwakened = true;
+        awakeningStartedFrame = Time.frameCount;
         SetGauge(currentGauge - activationCost);
         movementController?.CancelActionLock();
         ApplySelectedEffects();

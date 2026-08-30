@@ -37,6 +37,8 @@ public class PlayerMechController : MonoBehaviour
     [SerializeField] private float stepAcceleration = 90f;
     [SerializeField] private float stepEndDeceleration = 14f;
     [SerializeField] private float stepCooldown = 0.08f;
+    [SerializeField, InspectorName("再入力前のニュートラル時間")]
+    private float stepNeutralReturnTime = 0.06f;
     [SerializeField] private TransformationController transformationController;
 
     [Header("Boost Gauge")]
@@ -76,6 +78,8 @@ public class PlayerMechController : MonoBehaviour
     private int jumpButtonHoldFrames;
     private float boostCooldownTimer;
     private float stepCooldownTimer;
+    private float stepNeutralTimer;
+    private bool stepInputReturnedToNeutral;
     private float highSpeedEndDeceleration;
     private float currentBoost;
     private float boostRecoveryDelayTimer;
@@ -410,6 +414,8 @@ public class PlayerMechController : MonoBehaviour
     {
         lastStepInput = Vector2.zero;
         activeStepInput = Vector2.zero;
+        stepNeutralTimer = 0f;
+        stepInputReturnedToNeutral = false;
     }
 
     private void UpdateActionLock()
@@ -498,12 +504,20 @@ public class PlayerMechController : MonoBehaviour
 
         if (dominantInput == Vector2.zero)
         {
+            if (lastStepInput != Vector2.zero && !stepInputReturnedToNeutral)
+            {
+                stepNeutralTimer += Time.deltaTime;
+                stepInputReturnedToNeutral = stepNeutralTimer >= stepNeutralReturnTime;
+            }
+
             return;
         }
 
+        stepNeutralTimer = 0f;
+
         if (IsDirectionPressedThisFrame(dominantInput))
         {
-            if (dominantInput == lastStepInput)
+            if (dominantInput == lastStepInput && stepInputReturnedToNeutral)
             {
                 Vector3 worldDirection = GetCameraRelativeMoveDirection(
                     dominantInput.x,
@@ -519,6 +533,7 @@ public class PlayerMechController : MonoBehaviour
                 if (transformationHandled)
                 {
                     lastStepInput = Vector2.zero;
+                    stepInputReturnedToNeutral = false;
                     return;
                 }
 
@@ -526,11 +541,13 @@ public class PlayerMechController : MonoBehaviour
                 {
                     StartStep(dominantInput);
                     lastStepInput = Vector2.zero;
+                    stepInputReturnedToNeutral = false;
                     return;
                 }
             }
 
             lastStepInput = dominantInput;
+            stepInputReturnedToNeutral = false;
         }
     }
 
@@ -845,6 +862,7 @@ public class PlayerMechController : MonoBehaviour
         boostDashDrainPerSecond = Mathf.Max(0f, boostDashDrainPerSecond);
         jumpDrainPerSecond = Mathf.Max(0f, jumpDrainPerSecond);
         stepStartCost = Mathf.Max(0f, stepStartCost);
+        stepNeutralReturnTime = Mathf.Max(0f, stepNeutralReturnTime);
         boostRecoveryPerSecond = Mathf.Max(0f, boostRecoveryPerSecond);
         boostRecoveryDelay = Mathf.Max(0f, boostRecoveryDelay);
     }

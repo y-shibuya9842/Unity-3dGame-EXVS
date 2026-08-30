@@ -13,16 +13,29 @@ public class HomeMenuController : MonoBehaviour
 
     private Button startButton;
     private Button optionsButton;
+    private static bool initialScenePending;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void RegisterSceneHandler()
     {
+        initialScenePending = true;
         SceneManager.sceneLoaded -= HandleSceneLoaded;
         SceneManager.sceneLoaded += HandleSceneLoaded;
     }
 
     private static void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        if (initialScenePending)
+        {
+            initialScenePending = false;
+
+            if (scene.name != HomeSceneName)
+            {
+                SceneManager.LoadScene(HomeSceneName);
+                return;
+            }
+        }
+
         if (scene.name != HomeSceneName
             || FindFirstObjectByType<HomeMenuController>() != null)
         {
