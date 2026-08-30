@@ -2,9 +2,11 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+[ExecuteAlways]
 public class BattleHudController : MonoBehaviour
 {
     [Header("Player")]
+    [SerializeField] private MechLoadoutController playerLoadout;
     [SerializeField] private MechHealth playerHealth;
     [SerializeField] private PlayerMechController playerMovement;
     [SerializeField] private PlayerShooter playerShooter;
@@ -12,7 +14,14 @@ public class BattleHudController : MonoBehaviour
     [SerializeField] private SpecialShotController specialShot;
     [SerializeField] private ChargeShotController chargeShot;
     [SerializeField] private AwakeningController awakeningController;
+    [SerializeField] private LockOnController lockOnController;
     [SerializeField] private BattleManager battleManager;
+    [SerializeField] private BattleParticipant partnerParticipant;
+
+    private MechHealth partnerHealth;
+    private bool partnerHealthSubscribed;
+    private BattleParticipant targetParticipant;
+    private MechHealth targetHealth;
 
     [Header("Health UI")]
     [SerializeField] private TMP_Text healthText;
@@ -35,6 +44,14 @@ public class BattleHudController : MonoBehaviour
     [SerializeField] private TMP_Text playerCostText;
     [SerializeField] private TMP_Text enemyCostText;
 
+    [Header("レーダー")]
+    [SerializeField, InspectorName("マップ中心 (X/Z)")]
+    private Vector2 radarWorldCenter = Vector2.zero;
+    [SerializeField, InspectorName("マップ表示範囲 (幅/奥行き)")]
+    private Vector2 radarWorldSize = new Vector2(100f, 100f);
+
+    private BattleHudView hudView;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void EnsureControllerExists()
     {
@@ -48,11 +65,27 @@ public class BattleHudController : MonoBehaviour
 
     private void Awake()
     {
+        EnsureHudView();
+
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
         ResolveReferences();
+        ConnectPartner();
     }
 
     private void OnEnable()
     {
+        EnsureHudView();
+
+        if (!Application.isPlaying)
+        {
+            hudView?.SetPreviewValues();
+            return;
+        }
+
         ResolveReferences();
 
         if (playerHealth != null)
@@ -90,6 +123,12 @@ public class BattleHudController : MonoBehaviour
             awakeningController.OnGaugeChanged += UpdateAwakening;
         }
 
+        if (lockOnController != null)
+        {
+            lockOnController.OnTargetChanged += HandleTargetChanged;
+            HandleTargetChanged(lockOnController.CurrentTarget);
+        }
+
         if (battleManager != null)
         {
             battleManager.OnTimeChanged += UpdateTime;
@@ -99,6 +138,15 @@ public class BattleHudController : MonoBehaviour
 
     private void Start()
     {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
+        UpdateMachineName();
+        ConfigureWeaponList();
+        ConnectPartner();
+
         if (playerHealth != null)
         {
             UpdateHealth(playerHealth.CurrentHealth, playerHealth.MaxHealth);
@@ -147,6 +195,11 @@ public class BattleHudController : MonoBehaviour
 
     private void OnDisable()
     {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
         if (playerHealth != null)
         {
             playerHealth.OnHealthChanged -= UpdateHealth;
@@ -182,11 +235,19 @@ public class BattleHudController : MonoBehaviour
             awakeningController.OnGaugeChanged -= UpdateAwakening;
         }
 
+        if (lockOnController != null)
+        {
+            lockOnController.OnTargetChanged -= HandleTargetChanged;
+        }
+
         if (battleManager != null)
         {
             battleManager.OnTimeChanged -= UpdateTime;
             battleManager.OnTeamCostChanged -= UpdateTeamCost;
         }
+
+        DisconnectPartner();
+        DisconnectTarget();
     }
 
     private void UpdateHealth(float current, float maximum)
@@ -199,6 +260,19 @@ public class BattleHudController : MonoBehaviour
         UpdateGauge(healthGauge, current, maximum);
     }
 
+    private void UpdateMachineName()
+    {
+        if (hudView == null)
+        {
+            return;
+        }
+
+        MechDefinition definition = playerLoadout != null ? playerLoadout.Definition : null;
+        hudView.MachineNameText.text = definition != null
+            ? definition.MechName
+            : "UNKNOWN";
+    }
+
     private void UpdateBoost(float current, float maximum)
     {
         UpdateGauge(boostGauge, current, maximum);
@@ -206,6 +280,13 @@ public class BattleHudController : MonoBehaviour
 
     private void UpdateAmmo(int current, int maximum)
     {
+        if (hudView != null && playerShooter != null)
+        {
+            hudView.SetMainWeapon(GetWeaponName(GetDefinition()?.MainShot, "MAIN SHOT"),
+                current, current > 0, IsConfigured(GetDefinition()?.MainShot));
+            return;
+        }
+
         if (ammoText != null)
         {
             ammoText.text = $"AMMO {current}";
@@ -214,6 +295,13 @@ public class BattleHudController : MonoBehaviour
 
     private void UpdateSubAmmo(int current, int maximum)
     {
+        if (hudView != null && subWeapon != null)
+        {
+            hudView.SetSubWeapon(GetWeaponName(GetDefinition()?.SubShot, "SUB SHOT"),
+                current, current > 0, IsConfigured(GetDefinition()?.SubShot));
+            return;
+        }
+
         if (subAmmoText != null)
         {
             subAmmoText.text = $"SUB {current}/{maximum}";
@@ -222,6 +310,17 @@ public class BattleHudController : MonoBehaviour
 
     private void UpdateSpecialShotAmmo(int current, int maximum)
     {
+        if (hudView != null && specialShot != null)
+        {
+            hudView.SetSpecialWeapon(
+                GetWeaponName(GetDefinition()?.SpecialShot, "SPECIAL SHOT"),
+                current,
+                current > 0,
+                IsConfigured(GetDefinition()?.SpecialShot)
+            );
+            return;
+        }
+
         if (specialShotAmmoText != null)
         {
             specialShotAmmoText.text = $"SPECIAL {current}/{maximum}";
@@ -230,6 +329,12 @@ public class BattleHudController : MonoBehaviour
 
     private void UpdateCharge(float chargeRate)
     {
+        if (hudView != null)
+        {
+            hudView.SetCharge(chargeRate, IsConfigured(GetDefinition()?.ChargeShot));
+            return;
+        }
+
         UpdateGauge(chargeGauge, chargeRate, 1f);
     }
 
@@ -252,7 +357,9 @@ public class BattleHudController : MonoBehaviour
 
         if (targetText != null)
         {
-            targetText.text = $"COST {remainingCost}";
+            targetText.text = hudView != null
+                ? remainingCost.ToString()
+                : $"COST {remainingCost}";
         }
     }
 
@@ -270,10 +377,12 @@ public class BattleHudController : MonoBehaviour
 
     private void ResolveReferences()
     {
+        EnsureHudView();
         GameObject player = FindPlayerMech();
 
         if (player != null)
         {
+            playerLoadout ??= player.GetComponent<MechLoadoutController>();
             playerHealth ??= player.GetComponent<MechHealth>();
             playerMovement ??= player.GetComponent<PlayerMechController>();
             playerShooter ??= player.GetComponent<PlayerShooter>();
@@ -281,12 +390,222 @@ public class BattleHudController : MonoBehaviour
             specialShot ??= player.GetComponent<SpecialShotController>();
             chargeShot ??= player.GetComponent<ChargeShotController>();
             awakeningController ??= player.GetComponent<AwakeningController>();
+            lockOnController ??= player.GetComponent<LockOnController>();
         }
 
-        battleManager ??= FindFirstObjectByType<BattleManager>(FindObjectsInactive.Include);
-        healthText ??= FindNamedComponent<TMP_Text>(transform, "HpText");
-        ammoText ??= FindNamedComponent<TMP_Text>(transform, "AmmoText");
-        boostGauge ??= FindNamedComponent<Slider>(transform, "BoostGauge");
+        battleManager ??= BattleManager.GetOrCreate();
+        healthText = hudView != null
+            ? hudView.HealthText
+            : FindNamedComponent<TMP_Text>(transform, "HpText");
+        healthGauge = hudView != null ? hudView.HealthGauge : healthGauge;
+        ammoText = hudView != null
+            ? hudView.MainAmmoText
+            : FindNamedComponent<TMP_Text>(transform, "AmmoText");
+        subAmmoText = hudView != null ? hudView.SubAmmoText : subAmmoText;
+        specialShotAmmoText = hudView != null
+            ? hudView.SpecialAmmoText
+            : specialShotAmmoText;
+        chargeGauge = hudView != null ? hudView.ChargeGauge : chargeGauge;
+        awakeningGauge = hudView != null ? hudView.AwakeningGauge : awakeningGauge;
+        boostGauge = hudView != null
+            ? hudView.BoostGauge
+            : FindNamedComponent<Slider>(transform, "BoostGauge");
+        timerText = hudView != null ? hudView.TimerText : timerText;
+        playerCostText = hudView != null ? hudView.PlayerCostText : playerCostText;
+        enemyCostText = hudView != null ? hudView.EnemyCostText : enemyCostText;
+    }
+
+    private void UpdatePartnerHealth(float current, float maximum)
+    {
+        hudView?.SetPartner(
+            partnerParticipant != null ? partnerParticipant.DisplayName : "PARTNER",
+            current,
+            maximum,
+            partnerParticipant != null
+        );
+    }
+
+    private void EnsureHudView()
+    {
+        if (hudView == null)
+        {
+            hudView = BattleHudView.Ensure(transform);
+        }
+    }
+
+    private void ConnectPartner()
+    {
+        GameObject player = FindPlayerMech();
+        BattleParticipant playerParticipant = player != null
+            ? player.GetComponent<BattleParticipant>()
+            : null;
+        BattleParticipant foundPartner = null;
+
+        if (playerParticipant != null)
+        {
+            foreach (BattleParticipant participant in BattleParticipant.AllParticipants)
+            {
+                if (participant != null
+                    && participant != playerParticipant
+                    && participant.Team == playerParticipant.Team)
+                {
+                    foundPartner = participant;
+                    break;
+                }
+            }
+        }
+
+        if (foundPartner != partnerParticipant)
+        {
+            DisconnectPartner();
+            partnerParticipant = foundPartner;
+            partnerHealth = partnerParticipant != null
+                ? partnerParticipant.GetComponent<MechHealth>()
+                : null;
+        }
+
+        if (partnerHealth != null && !partnerHealthSubscribed)
+        {
+            partnerHealth.OnHealthChanged += UpdatePartnerHealth;
+            partnerHealthSubscribed = true;
+        }
+
+        if (partnerHealth != null)
+        {
+            UpdatePartnerHealth(partnerHealth.CurrentHealth, partnerHealth.MaxHealth);
+        }
+        else
+        {
+            hudView?.SetPartner(string.Empty, 0f, 1f, false);
+        }
+    }
+
+    private void DisconnectPartner()
+    {
+        if (partnerHealth != null && partnerHealthSubscribed)
+        {
+            partnerHealth.OnHealthChanged -= UpdatePartnerHealth;
+        }
+
+        partnerHealthSubscribed = false;
+        partnerHealth = null;
+    }
+
+    private void HandleTargetChanged(Transform target)
+    {
+        DisconnectTarget();
+
+        if (target == null)
+        {
+            hudView?.SetTarget(string.Empty, 0f, 1f, false);
+            return;
+        }
+
+        targetParticipant = target.GetComponentInParent<BattleParticipant>();
+        targetHealth = target.GetComponentInParent<MechHealth>();
+
+        if (targetHealth == null)
+        {
+            hudView?.SetTarget(string.Empty, 0f, 1f, false);
+            return;
+        }
+
+        targetHealth.OnHealthChanged += UpdateTargetHealth;
+        UpdateTargetHealth(targetHealth.CurrentHealth, targetHealth.MaxHealth);
+    }
+
+    private void UpdateTargetHealth(float current, float maximum)
+    {
+        string targetName = targetParticipant != null
+            ? targetParticipant.DisplayName
+            : "ENEMY";
+        hudView?.SetTarget(targetName, current, maximum, true);
+    }
+
+    private void DisconnectTarget()
+    {
+        if (targetHealth != null)
+        {
+            targetHealth.OnHealthChanged -= UpdateTargetHealth;
+        }
+
+        targetHealth = null;
+        targetParticipant = null;
+    }
+
+    private void Update()
+    {
+        if (Application.isPlaying)
+        {
+            if (partnerParticipant == null)
+            {
+                ConnectPartner();
+            }
+
+            UpdateWeaponAmmoStates();
+            UpdateRadar();
+        }
+    }
+
+    private void UpdateRadar()
+    {
+        BattleParticipant player = playerHealth != null
+            ? playerHealth.GetComponent<BattleParticipant>()
+            : null;
+        hudView?.UpdateRadar(
+            player,
+            BattleParticipant.AllParticipants,
+            radarWorldCenter,
+            radarWorldSize
+        );
+    }
+
+    private void ConfigureWeaponList()
+    {
+        UpdateWeaponAmmoStates();
+        hudView?.SetCharge(
+            chargeShot != null ? chargeShot.ChargeRate : 0f,
+            IsConfigured(GetDefinition()?.ChargeShot)
+        );
+    }
+
+    private void UpdateWeaponAmmoStates()
+    {
+        if (hudView == null)
+        {
+            return;
+        }
+
+        MechDefinition definition = GetDefinition();
+        hudView.SetMainWeapon(GetWeaponName(definition?.MainShot, "MAIN SHOT"),
+            playerShooter != null ? playerShooter.CurrentAmmo : 0,
+            playerShooter != null && playerShooter.CurrentAmmo > 0,
+            IsConfigured(definition?.MainShot));
+        hudView.SetSubWeapon(GetWeaponName(definition?.SubShot, "SUB SHOT"),
+            subWeapon != null ? subWeapon.CurrentAmmo : 0,
+            subWeapon != null && subWeapon.CurrentAmmo > 0,
+            IsConfigured(definition?.SubShot));
+        hudView.SetSpecialWeapon(GetWeaponName(definition?.SpecialShot, "SPECIAL SHOT"),
+            specialShot != null ? specialShot.CurrentAmmo : 0,
+            specialShot != null && specialShot.CurrentAmmo > 0,
+            IsConfigured(definition?.SpecialShot));
+    }
+
+    private MechDefinition GetDefinition()
+    {
+        return playerLoadout != null ? playerLoadout.Definition : null;
+    }
+
+    private bool IsConfigured(RangedWeaponDefinition definition)
+    {
+        return definition != null || playerLoadout == null;
+    }
+
+    private static string GetWeaponName(
+        RangedWeaponDefinition definition,
+        string fallbackName)
+    {
+        return definition != null ? definition.WeaponName : fallbackName;
     }
 
     private static GameObject FindPlayerMech()
@@ -331,5 +650,11 @@ public class BattleHudController : MonoBehaviour
         }
 
         return null;
+    }
+
+    private void OnValidate()
+    {
+        radarWorldSize.x = Mathf.Max(1f, radarWorldSize.x);
+        radarWorldSize.y = Mathf.Max(1f, radarWorldSize.y);
     }
 }

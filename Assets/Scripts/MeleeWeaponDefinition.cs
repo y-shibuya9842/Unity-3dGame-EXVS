@@ -24,6 +24,9 @@ public class MeleeWeaponDefinition : ScriptableObject
     [SerializeField] private float rushDuration = 0.45f;
     [SerializeField] private float boostCost = 20f;
 
+    [Header("投擲")]
+    [SerializeField] private HomingProjectile projectilePrefab;
+
     [Header("コンボ")]
     [SerializeField] private int maxComboCount = 3;
     [SerializeField] private float comboInputWindow = 0.35f;
@@ -49,6 +52,7 @@ public class MeleeWeaponDefinition : ScriptableObject
     public float RushSpeed => rushSpeed;
     public float RushDuration => rushDuration;
     public float BoostCost => boostCost;
+    public HomingProjectile ProjectilePrefab => projectilePrefab;
     public int MaxComboCount => maxComboCount;
     public float ComboInputWindow => comboInputWindow;
     public float ComboDamageMultiplier => comboDamageMultiplier;

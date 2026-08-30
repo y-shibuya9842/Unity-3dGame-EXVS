@@ -36,8 +36,13 @@ public static class GundamPrefabBuilder
         GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(GundamPrefabPath);
         bool needsModelCleanup = prefab != null
             && prefab.GetComponentInChildren<CharacterController>(true) != null;
+        MeleeWeaponDefinition neutralSpecialMelee = AssetDatabase.LoadAssetAtPath<
+            MeleeWeaponDefinition
+        >(WeaponRoot + "/SpecialMelee_JavelinThrow.asset");
+        bool needsSpecialMeleeUpdate = neutralSpecialMelee != null
+            && neutralSpecialMelee.ProjectilePrefab == null;
 
-        if (prefab == null || needsModelCleanup)
+        if (prefab == null || needsModelCleanup || needsSpecialMeleeUpdate)
         {
             Generate(needsModelCleanup);
         }
@@ -168,6 +173,17 @@ public static class GundamPrefabBuilder
             100f,
             10f
         );
+        HomingProjectile beamJavelin = CreateProjectile(
+            "BeamJavelinProjectile",
+            0.32f,
+            34f,
+            6f,
+            3.5f,
+            90f,
+            0.45f,
+            100f,
+            5f
+        );
 
         WeaponAssets assets = new WeaponAssets
         {
@@ -195,7 +211,7 @@ public static class GundamPrefabBuilder
             SpecialMelee = CreateMelee("SpecialMelee_GundamHammer", "前特殊格闘 ガンダム・ハンマー", 129f, 4f, 1, 1f, 26f, 0.45f),
             SideSpecialMelee = CreateMelee("SpecialMelee_HammerSpin", "横特殊格闘 ハンマー回転", 157f, 3.5f, 1, 1f, 20f, 0.4f),
             BackwardSpecialMelee = CreateMelee("SpecialMelee_JavelinStab", "後特殊格闘 ビーム・ジャベリン突き", 134f, 4.5f, 1, 1f, 24f, 0.45f),
-            NeutralSpecialMelee = CreateMelee("SpecialMelee_JavelinThrow", "N特殊格闘 ビーム・ジャベリン投擲", 90f, 8f, 1, 1f, 0f, 0.2f)
+            NeutralSpecialMelee = CreateMelee("SpecialMelee_JavelinThrow", "N特殊格闘 ビーム・ジャベリン投擲", 90f, 8f, 1, 1f, 0f, 0.2f, beamJavelin)
         };
 
         return assets;
@@ -467,7 +483,8 @@ public static class GundamPrefabBuilder
         int comboCount,
         float comboMultiplier,
         float rushSpeed,
-        float rushDuration)
+        float rushDuration,
+        HomingProjectile projectilePrefab = null)
     {
         MeleeWeaponDefinition definition = CreateOrLoad<MeleeWeaponDefinition>(
             WeaponRoot + "/" + assetName + ".asset"
@@ -485,6 +502,7 @@ public static class GundamPrefabBuilder
         Set(serialized, "rushSpeed", rushSpeed);
         Set(serialized, "rushDuration", rushDuration);
         Set(serialized, "boostCost", 20f);
+        Set(serialized, "projectilePrefab", projectilePrefab);
         Set(serialized, "maxComboCount", comboCount);
         Set(serialized, "comboInputWindow", 0.35f);
         Set(serialized, "comboDamageMultiplier", comboMultiplier);

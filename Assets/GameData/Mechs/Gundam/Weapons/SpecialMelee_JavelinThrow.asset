@@ -24,6 +24,7 @@ MonoBehaviour:
   rushSpeed: 0
   rushDuration: 0.2
   boostCost: 20
+  projectilePrefab: {fileID: 8082435357805322568, guid: d36ab7880317a5849b93fa0d15d2e4c4, type: 3}
   maxComboCount: 1
   comboInputWindow: 0.35
   comboDamageMultiplier: 1

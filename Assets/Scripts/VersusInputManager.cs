@@ -79,7 +79,32 @@ public sealed class VersusInputManager : MonoBehaviour
 
     public bool WasPressedThisFrame(VersusInputAction action)
     {
-        return GetAction(action).WasPressedThisFrame();
+        bool subShotCombination = WasCombinationPressedThisFrame(
+            VersusInputAction.MainShot,
+            VersusInputAction.Melee
+        );
+        bool specialShotCombination = WasCombinationPressedThisFrame(
+            VersusInputAction.MainShot,
+            VersusInputAction.Jump
+        );
+
+        if (action == VersusInputAction.MainShot
+            && (subShotCombination || specialShotCombination))
+        {
+            return false;
+        }
+
+        if (action == VersusInputAction.Melee && subShotCombination)
+        {
+            return false;
+        }
+
+        if (action == VersusInputAction.Jump && specialShotCombination)
+        {
+            return false;
+        }
+
+        return WasRawPressedThisFrame(action);
     }
 
     public bool WasReleasedThisFrame(VersusInputAction action)
@@ -90,6 +115,52 @@ public sealed class VersusInputManager : MonoBehaviour
     public bool IsPressed(VersusInputAction action)
     {
         return GetAction(action).IsPressed();
+    }
+
+    public bool WasSubShotTriggeredThisFrame()
+    {
+        return WasRawPressedThisFrame(VersusInputAction.SubShot)
+            || WasCombinationPressedThisFrame(
+                VersusInputAction.MainShot,
+                VersusInputAction.Melee
+            );
+    }
+
+    public bool WasSpecialShotTriggeredThisFrame()
+    {
+        return WasRawPressedThisFrame(VersusInputAction.SpecialShot)
+            || WasCombinationPressedThisFrame(
+                VersusInputAction.MainShot,
+                VersusInputAction.Jump
+            );
+    }
+
+    public bool WasChargeInputStartedThisFrame()
+    {
+        return WasRawPressedThisFrame(VersusInputAction.MainShot)
+            || WasRawPressedThisFrame(VersusInputAction.SubShot)
+            || WasRawPressedThisFrame(VersusInputAction.SpecialShot);
+    }
+
+    public bool IsChargeInputPressed()
+    {
+        return IsPressed(VersusInputAction.MainShot)
+            || IsPressed(VersusInputAction.SubShot)
+            || IsPressed(VersusInputAction.SpecialShot);
+    }
+
+    private bool WasCombinationPressedThisFrame(
+        VersusInputAction first,
+        VersusInputAction second)
+    {
+        return IsPressed(first)
+            && IsPressed(second)
+            && (WasRawPressedThisFrame(first) || WasRawPressedThisFrame(second));
+    }
+
+    private bool WasRawPressedThisFrame(VersusInputAction action)
+    {
+        return GetAction(action).WasPressedThisFrame();
     }
 
     public InputAction GetAction(VersusInputAction action)

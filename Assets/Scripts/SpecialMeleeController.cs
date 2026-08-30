@@ -9,6 +9,7 @@ public class SpecialMeleeController : MonoBehaviour
     [Header("References")]
     [SerializeField] private LockOnController lockOnController;
     [SerializeField] private PlayerMechController movementController;
+    [SerializeField] private PlayerShooter playerShooter;
     [SerializeField] private Animator animator;
 
     [Header("Weapon Data")]
@@ -56,6 +57,11 @@ public class SpecialMeleeController : MonoBehaviour
         {
             movementController = GetComponent<PlayerMechController>();
         }
+
+        if (playerShooter == null)
+        {
+            playerShooter = GetComponent<PlayerShooter>();
+        }
     }
 
     private void OnEnable()
@@ -95,14 +101,64 @@ public class SpecialMeleeController : MonoBehaviour
     {
         if (isRushing
             || movementController == null
-            || movementController.IsActionLocked()
-            || !movementController.TryConsumeBoost(GetBoostCost()))
+            || rushCoroutine != null
+            || movementController.IsActionLocked())
+        {
+            return false;
+        }
+
+        HomingProjectile activeProjectile = GetProjectilePrefab();
+
+        if (activeProjectile != null)
+        {
+            rushCoroutine = StartCoroutine(ThrowRoutine(activeProjectile));
+            return true;
+        }
+
+        if (!movementController.TryConsumeBoost(GetBoostCost()))
         {
             return false;
         }
 
         rushCoroutine = StartCoroutine(RushRoutine());
         return true;
+    }
+
+    private IEnumerator ThrowRoutine(HomingProjectile projectilePrefab)
+    {
+        CaptureTargetingState();
+        UpdateRushDirection();
+        FaceRushDirection();
+        movementController.ClearStepInputBuffer();
+        movementController.ApplyActionLock(
+            GetStartupTime() + GetRecoveryTime(),
+            true
+        );
+
+        string activeAnimationTrigger = GetAnimationTrigger();
+
+        if (animator != null && !string.IsNullOrWhiteSpace(activeAnimationTrigger))
+        {
+            animator.SetTrigger(activeAnimationTrigger);
+        }
+
+        OnRushStarted?.Invoke();
+        yield return new WaitForSeconds(GetStartupTime());
+
+        Vector3 direction = rushTarget != null
+            ? (rushTarget.position - transform.position).normalized
+            : transform.forward;
+        Vector3 spawnPosition = transform.position + Vector3.up * 1.2f + direction * 1.1f;
+        HomingProjectile projectile = Instantiate(
+            projectilePrefab,
+            spawnPosition,
+            Quaternion.LookRotation(direction, Vector3.up)
+        );
+        projectile.Launch(rushTarget, direction, transform, rushTarget != null);
+
+        yield return new WaitForSeconds(GetRecoveryTime());
+        rushCoroutine = null;
+        OnRushEnded?.Invoke();
     }
 
     private IEnumerator RushRoutine()
@@ -232,6 +288,18 @@ public class SpecialMeleeController : MonoBehaviour
     private float GetBoostCost() => weaponDefinition != null
         ? weaponDefinition.BoostCost
         : boostCost;
+    private float GetStartupTime() => weaponDefinition != null
+        ? weaponDefinition.StartupTime
+        : 0.15f;
+    private HomingProjectile GetProjectilePrefab()
+    {
+        if (weaponDefinition != null && weaponDefinition.ProjectilePrefab != null)
+        {
+            return weaponDefinition.ProjectilePrefab;
+        }
+
+        return playerShooter != null ? playerShooter.ActiveProjectilePrefab : null;
+    }
     private string GetAnimationTrigger() => weaponDefinition != null
         ? weaponDefinition.SpecialAnimationTrigger
         : animationTrigger;

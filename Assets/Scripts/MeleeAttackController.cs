@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using UnityEngine;
 
+[DefaultExecutionOrder(100)]
+[RequireComponent(typeof(Rigidbody))]
 public class MeleeAttackController : MonoBehaviour
 {
     private enum MeleeDirection
@@ -52,6 +54,9 @@ public class MeleeAttackController : MonoBehaviour
     private bool comboBuffered;
     private MeleeDirection activeDirection;
     private float externalDamageMultiplier = 1f;
+    private Rigidbody rb;
+    private Transform approachTarget;
+    private bool isApproaching;
 
     public bool IsAttacking => isAttacking;
 
@@ -67,6 +72,8 @@ public class MeleeAttackController : MonoBehaviour
 
     private void Awake()
     {
+        rb = GetComponent<Rigidbody>();
+
         if (movementController == null)
         {
             movementController = GetComponent<PlayerMechController>();
@@ -104,6 +111,16 @@ public class MeleeAttackController : MonoBehaviour
         }
     }
 
+    private void FixedUpdate()
+    {
+        if (!isApproaching || rb == null)
+        {
+            return;
+        }
+
+        UpdateApproachMovement();
+    }
+
     private bool CanAttack()
     {
         return !isAttacking
@@ -114,6 +131,9 @@ public class MeleeAttackController : MonoBehaviour
     {
         isAttacking = true;
         activeDirection = ReadMeleeDirection();
+        approachTarget = lockOnController != null
+            ? lockOnController.CurrentTarget
+            : null;
         FaceTarget();
         OnAttackStarted?.Invoke();
 
@@ -121,14 +141,17 @@ public class MeleeAttackController : MonoBehaviour
         {
             comboBuffered = false;
             canBufferCombo = false;
+            float approachDuration = GetApproachDuration();
             movementController?.ApplyActionLock(
-                GetStartupTime() + GetComboInputWindow() + GetRecoveryTime(),
+                approachDuration + GetComboInputWindow() + GetRecoveryTime(),
                 true
             );
             PlayAttackAnimation(comboIndex);
             OnComboStageStarted?.Invoke(comboIndex + 1);
 
-            yield return new WaitForSeconds(GetStartupTime());
+            BeginApproach();
+            yield return new WaitForSeconds(approachDuration);
+            EndApproach(true);
             TryHitTarget(comboIndex);
 
             canBufferCombo = comboIndex < GetMaxComboCount() - 1;
@@ -144,7 +167,69 @@ public class MeleeAttackController : MonoBehaviour
 
         isAttacking = false;
         comboBuffered = false;
+        approachTarget = null;
         OnAttackEnded?.Invoke();
+    }
+
+    private void BeginApproach()
+    {
+        isApproaching = approachTarget != null && GetRushSpeed() > 0f;
+    }
+
+    private float GetApproachDuration()
+    {
+        if (approachTarget == null)
+        {
+            return GetStartupTime();
+        }
+
+        float distance = Vector3.Distance(transform.position, approachTarget.position);
+        return distance > GetAttackRange()
+            ? GetRushDuration() + GetStartupTime()
+            : GetStartupTime();
+    }
+
+    private void UpdateApproachMovement()
+    {
+        if (approachTarget == null || !approachTarget.gameObject.activeInHierarchy)
+        {
+            EndApproach(true);
+            return;
+        }
+
+        Vector3 direction = approachTarget.position - transform.position;
+        direction.y = 0f;
+        float stopDistance = GetAttackRange() * 0.75f;
+
+        if (direction.sqrMagnitude <= stopDistance * stopDistance)
+        {
+            SetHorizontalVelocity(Vector3.zero);
+            return;
+        }
+
+        Vector3 normalizedDirection = direction.normalized;
+        transform.rotation = Quaternion.LookRotation(normalizedDirection, Vector3.up);
+        SetHorizontalVelocity(normalizedDirection * GetRushSpeed());
+    }
+
+    private void EndApproach(bool stopMovement)
+    {
+        isApproaching = false;
+
+        if (stopMovement && rb != null)
+        {
+            SetHorizontalVelocity(Vector3.zero);
+        }
+    }
+
+    private void SetHorizontalVelocity(Vector3 horizontalVelocity)
+    {
+        Vector3 velocity = rb.linearVelocity;
+        rb.linearVelocity = new Vector3(
+            horizontalVelocity.x,
+            velocity.y,
+            horizontalVelocity.z
+        );
     }
 
     private void TryHitTarget(int comboIndex)
@@ -308,6 +393,12 @@ public class MeleeAttackController : MonoBehaviour
     private float GetComboDownValueMultiplier() => weaponDefinition != null
         ? weaponDefinition.ComboDownValueMultiplier
         : comboDownValueMultiplier;
+    private float GetRushSpeed() => weaponDefinition != null
+        ? weaponDefinition.RushSpeed
+        : 24f;
+    private float GetRushDuration() => weaponDefinition != null
+        ? weaponDefinition.RushDuration
+        : 0.45f;
 
     private void FaceTarget()
     {
@@ -340,6 +431,8 @@ public class MeleeAttackController : MonoBehaviour
         }
 
         StopAllCoroutines();
+        EndApproach(true);
+        approachTarget = null;
         isAttacking = false;
         canBufferCombo = false;
         comboBuffered = false;
@@ -353,6 +446,8 @@ public class MeleeAttackController : MonoBehaviour
         }
 
         StopAllCoroutines();
+        EndApproach(true);
+        approachTarget = null;
         isAttacking = false;
         canBufferCombo = false;
         comboBuffered = false;

@@ -33,6 +33,7 @@ public class PlayerShooter : MonoBehaviour
 
     public int CurrentAmmo => currentAmmo;
     public int MaxAmmo => GetMaxAmmo();
+    public HomingProjectile ActiveProjectilePrefab => GetProjectilePrefab();
 
     public event Action<int, int> OnAmmoChanged;
 

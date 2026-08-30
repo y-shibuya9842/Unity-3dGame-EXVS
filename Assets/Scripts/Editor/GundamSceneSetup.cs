@@ -7,6 +7,8 @@ using UnityEngine.SceneManagement;
 public static class GundamSceneSetup
 {
     private const string GundamPrefabPath = "Assets/Prefabs/Mechs/Gundam.prefab";
+    private const string RobotKylePrefabPath =
+        "Assets/UnityTechnologies/SpaceRobotKyle/Prefabs/RobotKyle.prefab";
 
     static GundamSceneSetup()
     {
@@ -46,11 +48,12 @@ public static class GundamSceneSetup
         }
 
         DisableOldPlayerObjects(scene, playerMech);
+        BattleManager battleManager = ConfigureBattleManager(scene);
         ConfigureEnemy(enemyMech);
         ConfigureCamera(scene, gundam, enemyMech);
         ConfigureLockOn(gundam);
-        ConfigureBattleParticipant(gundam);
-        ConfigureBattleHud(scene, gundam);
+        ConfigureBattleParticipant(gundam, battleManager);
+        ConfigureBattleHud(scene, gundam, battleManager);
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
@@ -81,8 +84,19 @@ public static class GundamSceneSetup
             && FindComponentInScene<VersusLockOnCamera>(scene) == null;
         bool enemySetupIsMissing = enemyMech != null
             && enemyMech.GetComponent<BattleParticipant>() == null;
+        bool enemyVisualIsMissing = enemyMech != null
+            && enemyMech.GetComponentInChildren<SkinnedMeshRenderer>(true) == null;
+        GameObject battleUi = FindInScene(scene, "BattleUI");
+        bool hudSetupIsMissing = battleUi != null
+            && battleUi.GetComponent<BattleHudController>() == null;
+        bool battleManagerIsMissing = FindComponentInScene<BattleManager>(scene) == null;
 
-        if ((gundam != null && !cameraSetupIsMissing && !enemySetupIsMissing)
+        if ((gundam != null
+                && !cameraSetupIsMissing
+                && !enemySetupIsMissing
+                && !enemyVisualIsMissing
+                && !hudSetupIsMissing
+                && !battleManagerIsMissing)
             || (gundam == null && FindInScene(scene, "PlayerMech") == null))
         {
             return;
@@ -178,12 +192,32 @@ public static class GundamSceneSetup
         SetObjectReference(lockOn, "playerShooter", shooter);
     }
 
-    private static void ConfigureBattleParticipant(GameObject gundam)
+    private static BattleManager ConfigureBattleManager(Scene scene)
+    {
+        BattleManager battleManager = FindComponentInScene<BattleManager>(scene);
+
+        if (battleManager != null)
+        {
+            return battleManager;
+        }
+
+        GameObject gameManager = FindInScene(scene, "GameManager");
+
+        if (gameManager == null)
+        {
+            gameManager = new GameObject("GameManager");
+            SceneManager.MoveGameObjectToScene(gameManager, scene);
+            Undo.RegisterCreatedObjectUndo(gameManager, "戦闘管理オブジェクトを作成");
+        }
+
+        return Undo.AddComponent<BattleManager>(gameManager);
+    }
+
+    private static void ConfigureBattleParticipant(
+        GameObject gundam,
+        BattleManager battleManager)
     {
         BattleParticipant participant = gundam.GetComponent<BattleParticipant>();
-        BattleManager battleManager = Object.FindFirstObjectByType<BattleManager>(
-            FindObjectsInactive.Include
-        );
 
         if (participant != null && battleManager != null)
         {
@@ -214,24 +248,117 @@ public static class GundamSceneSetup
 
         SerializedObject serialized = new SerializedObject(participant);
         SerializedProperty team = serialized.FindProperty("team");
+        SerializedProperty displayName = serialized.FindProperty("displayName");
         SerializedProperty healthReference = serialized.FindProperty("health");
         SerializedProperty battleManagerReference = serialized.FindProperty("battleManager");
         team.enumValueIndex = (int)BattleTeam.Enemy;
+        displayName.stringValue = "敵機";
         healthReference.objectReferenceValue = health;
         battleManagerReference.objectReferenceValue = Object.FindFirstObjectByType<BattleManager>(
             FindObjectsInactive.Include
         );
         serialized.ApplyModifiedProperties();
         EditorUtility.SetDirty(participant);
+        ConfigureEnemyVisual(enemyMech);
     }
 
-    private static void ConfigureBattleHud(Scene scene, GameObject gundam)
+    private static void ConfigureEnemyVisual(GameObject enemyMech)
     {
-        BattleHudController hud = FindComponentInScene<BattleHudController>(scene);
+        MeshRenderer capsuleRenderer = enemyMech.GetComponent<MeshRenderer>();
+
+        if (capsuleRenderer != null && capsuleRenderer.enabled)
+        {
+            Undo.RecordObject(capsuleRenderer, "敵機のカプセル表示を無効化");
+            capsuleRenderer.enabled = false;
+            EditorUtility.SetDirty(capsuleRenderer);
+        }
+
+        if (enemyMech.GetComponentInChildren<SkinnedMeshRenderer>(true) != null)
+        {
+            return;
+        }
+
+        GameObject modelPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+            RobotKylePrefabPath
+        );
+
+        if (modelPrefab == null)
+        {
+            Debug.LogWarning("敵機用のRobot Kyleが見つかりません。", enemyMech);
+            return;
+        }
+
+        Transform modelParent = FindTransform(enemyMech.transform, "Model");
+
+        if (modelParent == null)
+        {
+            GameObject modelParentObject = new GameObject("Model");
+            Undo.RegisterCreatedObjectUndo(modelParentObject, "敵機のモデル親を作成");
+            modelParent = modelParentObject.transform;
+            modelParent.SetParent(enemyMech.transform, false);
+        }
+
+        GameObject model = PrefabUtility.InstantiatePrefab(
+            modelPrefab,
+            enemyMech.scene
+        ) as GameObject;
+        Undo.RegisterCreatedObjectUndo(model, "敵機の仮モデルを配置");
+        PrefabUtility.UnpackPrefabInstance(
+            model,
+            PrefabUnpackMode.Completely,
+            InteractionMode.AutomatedAction
+        );
+        model.name = "RobotKyle";
+        model.transform.SetParent(modelParent, false);
+
+        Vector3 enemyScale = enemyMech.transform.lossyScale;
+        model.transform.localPosition = new Vector3(
+            0f,
+            -enemyMech.transform.position.y / Mathf.Max(0.01f, enemyScale.y),
+            0f
+        );
+        model.transform.localRotation = Quaternion.identity;
+        model.transform.localScale = new Vector3(
+            1f / Mathf.Max(0.01f, enemyScale.x),
+            1f / Mathf.Max(0.01f, enemyScale.y),
+            1f / Mathf.Max(0.01f, enemyScale.z)
+        );
+
+        // 仮モデルは見た目とアニメーターだけを使用する。
+        foreach (MonoBehaviour behaviour in model.GetComponentsInChildren<MonoBehaviour>(true))
+        {
+            Undo.DestroyObjectImmediate(behaviour);
+        }
+
+        foreach (Collider collider in model.GetComponentsInChildren<Collider>(true))
+        {
+            Undo.DestroyObjectImmediate(collider);
+        }
+
+        foreach (Rigidbody rigidbody in model.GetComponentsInChildren<Rigidbody>(true))
+        {
+            Undo.DestroyObjectImmediate(rigidbody);
+        }
+    }
+
+    private static void ConfigureBattleHud(
+        Scene scene,
+        GameObject gundam,
+        BattleManager battleManager)
+    {
+        GameObject battleUi = FindInScene(scene, "BattleUI");
+
+        if (battleUi == null)
+        {
+            Debug.LogWarning("BattleUIが見つからないため、戦闘HUDは設定していません。");
+            return;
+        }
+
+        BattleHudController hud = battleUi.GetComponent<BattleHudController>();
 
         if (hud == null)
         {
-            return;
+            hud = Undo.AddComponent<BattleHudController>(battleUi);
         }
 
         SetObjectReference(hud, "playerHealth", gundam.GetComponent<MechHealth>());
@@ -242,9 +369,6 @@ public static class GundamSceneSetup
         SetObjectReference(hud, "chargeShot", gundam.GetComponent<ChargeShotController>());
         SetObjectReference(hud, "awakeningController", gundam.GetComponent<AwakeningController>());
 
-        BattleManager battleManager = Object.FindFirstObjectByType<BattleManager>(
-            FindObjectsInactive.Include
-        );
         SetObjectReference(hud, "battleManager", battleManager);
     }
 

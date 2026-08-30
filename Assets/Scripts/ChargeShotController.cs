@@ -49,18 +49,19 @@ public class ChargeShotController : MonoBehaviour
 
     private void Update()
     {
-        if (VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.MainShot))
+        VersusInputManager input = VersusInputManager.Instance;
+
+        if (!isCharging && input.WasChargeInputStartedThisFrame())
         {
             BeginCharge();
         }
 
-        if (isCharging && VersusInputManager.Instance.IsPressed(VersusInputAction.MainShot))
+        if (isCharging && input.IsChargeInputPressed())
         {
             UpdateCharge();
         }
 
-        if (isCharging
-            && VersusInputManager.Instance.WasReleasedThisFrame(VersusInputAction.MainShot))
+        if (isCharging && !input.IsChargeInputPressed())
         {
             ReleaseCharge();
         }
@@ -70,9 +71,6 @@ public class ChargeShotController : MonoBehaviour
     {
         isCharging = true;
         currentChargeTime = 0f;
-
-        // 長押し判定中はPlayerShooter側の即時発射を一時停止する。
-        mainShooter?.SetPlayerInputEnabled(false);
         OnChargeChanged?.Invoke(0f);
     }
 
@@ -92,16 +90,10 @@ public class ChargeShotController : MonoBehaviour
     {
         bool fireChargedShot = IsFullyCharged;
         isCharging = false;
-        mainShooter?.SetPlayerInputEnabled(true);
 
         if (fireChargedShot)
         {
             TryFireChargedShot();
-        }
-        else
-        {
-            // 最大まで溜めずに離した場合は通常のメイン射撃として扱う。
-            mainShooter?.TryShoot();
         }
 
         currentChargeTime = 0f;
@@ -171,11 +163,6 @@ public class ChargeShotController : MonoBehaviour
 
     private void OnDisable()
     {
-        if (isCharging)
-        {
-            mainShooter?.SetPlayerInputEnabled(true);
-        }
-
         isCharging = false;
         currentChargeTime = 0f;
     }

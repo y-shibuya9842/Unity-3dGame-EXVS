@@ -7,6 +7,7 @@ public class BattleParticipant : MonoBehaviour
 
     [Header("Battle")]
     [SerializeField] private BattleTeam team;
+    [SerializeField] private string displayName;
     [SerializeField] private int unitCost = 2000;
     [SerializeField] private float respawnDelay = 2f;
 
@@ -19,6 +20,9 @@ public class BattleParticipant : MonoBehaviour
     private Quaternion initialRotation;
 
     public BattleTeam Team => team;
+    public string DisplayName => string.IsNullOrWhiteSpace(displayName)
+        ? gameObject.name
+        : displayName;
     public int UnitCost => unitCost;
     public float RespawnDelay => respawnDelay;
     public bool IsAvailable => isActiveAndEnabled && (health == null || !health.IsDestroyed);
@@ -29,8 +33,20 @@ public class BattleParticipant : MonoBehaviour
         unitCost = Mathf.Max(1, value);
     }
 
+    public void SetTeam(BattleTeam value)
+    {
+        team = value;
+    }
+
+    public void SetDisplayName(string value)
+    {
+        displayName = value;
+    }
+
     private void Awake()
     {
+        battleManager ??= BattleManager.GetOrCreate();
+
         if (health == null)
         {
             health = GetComponent<MechHealth>();
@@ -108,6 +124,7 @@ public class BattleParticipant : MonoBehaviour
 
     private void HandleDestroyed()
     {
+        battleManager ??= BattleManager.GetOrCreate();
         battleManager?.HandleDestroyed(this);
     }
 

@@ -57,7 +57,7 @@ public class SubWeaponController : MonoBehaviour
     {
         UpdateTimers();
 
-        if (VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.SubShot))
+        if (VersusInputManager.Instance.WasSubShotTriggeredThisFrame())
         {
             TryUse();
         }

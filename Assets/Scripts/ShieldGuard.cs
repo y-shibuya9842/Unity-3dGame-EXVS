@@ -5,6 +5,7 @@ public class ShieldGuard : MonoBehaviour
 {
     [Header("Input")]
     [SerializeField] private float leverInputWindow = 0.3f;
+    [SerializeField] private bool playerInputEnabled = true;
 
     [Header("Guard")]
     [SerializeField, Range(1f, 180f)] private float guardAngle = 110f;
@@ -19,6 +20,7 @@ public class ShieldGuard : MonoBehaviour
     private bool downInputArmed;
     private float downInputTime;
     private Vector2 previousMoveInput;
+    private float automaticGuardTimer;
 
     public bool IsGuarding => isGuarding;
 
@@ -38,6 +40,23 @@ public class ShieldGuard : MonoBehaviour
 
     private void Update()
     {
+        if (automaticGuardTimer > 0f)
+        {
+            automaticGuardTimer -= Time.deltaTime;
+
+            if (automaticGuardTimer <= 0f)
+            {
+                StopGuard();
+            }
+
+            return;
+        }
+
+        if (!playerInputEnabled)
+        {
+            return;
+        }
+
         UpdateLeverInput();
 
         if (VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.Guard))
@@ -90,6 +109,23 @@ public class ShieldGuard : MonoBehaviour
 
         OnAttackBlocked?.Invoke();
         return true;
+    }
+
+    public void SetPlayerInputEnabled(bool enabled)
+    {
+        playerInputEnabled = enabled;
+    }
+
+    public void StartAutomaticGuard(float duration)
+    {
+        automaticGuardTimer = Mathf.Max(0.1f, duration);
+
+        if (!isGuarding)
+        {
+            isGuarding = true;
+            SetGuardVisual(true);
+            OnGuardStarted?.Invoke();
+        }
     }
 
     private void UpdateLeverInput()
@@ -152,6 +188,7 @@ public class ShieldGuard : MonoBehaviour
 
     private void OnDisable()
     {
+        automaticGuardTimer = 0f;
         isGuarding = false;
         SetGuardVisual(false);
     }

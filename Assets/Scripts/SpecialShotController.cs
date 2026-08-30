@@ -70,7 +70,7 @@ public class SpecialShotController : MonoBehaviour
     {
         UpdateTimers();
 
-        if (VersusInputManager.Instance.WasPressedThisFrame(VersusInputAction.SpecialShot))
+        if (VersusInputManager.Instance.WasSpecialShotTriggeredThisFrame())
         {
             TryUse();
         }

@@ -28,6 +28,33 @@ public class BattleManager : MonoBehaviour
     public event Action<float> OnTimeChanged;
     public event Action<BattleTeam> OnBattleEnded;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void EnsureManagerExists()
+    {
+        GetOrCreate();
+    }
+
+    public static BattleManager GetOrCreate()
+    {
+        BattleManager manager = FindFirstObjectByType<BattleManager>(
+            FindObjectsInactive.Include
+        );
+
+        if (manager != null)
+        {
+            return manager;
+        }
+
+        GameObject managerObject = GameObject.Find("GameManager");
+
+        if (managerObject == null)
+        {
+            managerObject = new GameObject("GameManager");
+        }
+
+        return managerObject.AddComponent<BattleManager>();
+    }
+
     private void Awake()
     {
         playerTeamCost = Mathf.Max(1, initialTeamCost);
